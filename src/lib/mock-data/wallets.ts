@@ -1,10 +1,12 @@
 import type { FaabWallet } from "@/lib/types";
 
+// availableFaab is derived so the books balance: totalBudget + seasonProfitLoss
+// (net winnings/losses so far) minus whatever's currently reserved in open bets.
 export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-1",
     totalBudget: 1000,
-    availableFaab: 742,
+    availableFaab: 1098,
     reservedFaab: 75,
     weeklyProfitLoss: 38,
     seasonProfitLoss: 173,
@@ -12,7 +14,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-2",
     totalBudget: 1000,
-    availableFaab: 1050,
+    availableFaab: 1170,
     reservedFaab: 40,
     weeklyProfitLoss: -12,
     seasonProfitLoss: 210,
@@ -20,7 +22,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-3",
     totalBudget: 1000,
-    availableFaab: 890,
+    availableFaab: 1070,
     reservedFaab: 25,
     weeklyProfitLoss: 60,
     seasonProfitLoss: 95,
@@ -28,7 +30,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-4",
     totalBudget: 1000,
-    availableFaab: 615,
+    availableFaab: 860,
     reservedFaab: 0,
     weeklyProfitLoss: -30,
     seasonProfitLoss: -140,
@@ -36,7 +38,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-5",
     totalBudget: 1000,
-    availableFaab: 705,
+    availableFaab: 990,
     reservedFaab: 50,
     weeklyProfitLoss: 15,
     seasonProfitLoss: 40,
@@ -44,7 +46,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-6",
     totalBudget: 1000,
-    availableFaab: 480,
+    availableFaab: 720,
     reservedFaab: 0,
     weeklyProfitLoss: -20,
     seasonProfitLoss: -280,
@@ -52,7 +54,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-7",
     totalBudget: 1000,
-    availableFaab: 560,
+    availableFaab: 875,
     reservedFaab: 30,
     weeklyProfitLoss: -5,
     seasonProfitLoss: -95,
@@ -60,7 +62,7 @@ export const mockWallets: FaabWallet[] = [
   {
     memberId: "member-8",
     totalBudget: 1000,
-    availableFaab: 390,
+    availableFaab: 680,
     reservedFaab: 0,
     weeklyProfitLoss: -45,
     seasonProfitLoss: -320,

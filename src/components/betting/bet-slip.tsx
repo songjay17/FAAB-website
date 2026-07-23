@@ -145,12 +145,17 @@ function BetSlipForm({
                   }
                 }}
                 aria-invalid={!!error}
+                aria-describedby={error ? "stake-error" : undefined}
                 className="font-mono text-lg tabular-nums"
               />
               <p className="text-xs text-muted-foreground">
                 Available: {formatFaab(wallet.availableFaab)} FAAB
               </p>
-              {error ? <p className="text-xs text-destructive">{error}</p> : null}
+              {error ? (
+                <p id="stake-error" className="text-xs text-destructive">
+                  {error}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2 rounded-lg border border-border p-3 text-sm">
