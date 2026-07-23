@@ -5,12 +5,9 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav-items";
 import { mockLeague } from "@/lib/mock-data";
-import { formatFaab } from "@/lib/odds";
-import { useBetting } from "@/lib/state/betting-provider";
 
 export function Navigation() {
   const pathname = usePathname();
-  const { wallet } = useBetting();
 
   return (
     <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-sidebar-border lg:bg-sidebar">
@@ -43,16 +40,8 @@ export function Navigation() {
           );
         })}
       </nav>
-      <div className="border-t border-sidebar-border px-5 py-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Available FAAB</span>
-          <span className="font-mono text-sm font-semibold tabular-nums text-sidebar-foreground">
-            {formatFaab(wallet.availableFaab)}
-          </span>
-        </div>
-        <div className="mt-2 text-xs text-muted-foreground">
-          Virtual FAAB only &mdash; no real-money value.
-        </div>
+      <div className="border-t border-sidebar-border px-5 py-4 text-xs text-muted-foreground">
+        Virtual FAAB only &mdash; no real-money value.
       </div>
     </aside>
   );
