@@ -134,4 +134,18 @@ export const mockWagers: Wager[] = [
     placedAt: "2026-07-11T15:47:00.000Z",
     settledAt: "2026-07-12T09:00:00.000Z",
   }),
+  // Still open going into this pass — this is what the Commissioner
+  // "Settle Week 6" action processes.
+  makeWager({
+    id: "wager-8",
+    reference: "JHL-69920",
+    matchupId: "matchup-w6-4",
+    week: 6,
+    selectedTeamId: "team-5",
+    opponentTeamId: "team-8",
+    moneylineAtBet: -140,
+    stakeFaab: 35,
+    status: "open",
+    placedAt: "2026-07-18T15:30:00.000Z",
+  }),
 ];

@@ -11,8 +11,10 @@ import {
 import type { BettingMarket, FaabWallet, Wager } from "@/lib/types";
 import { calculatePayout, calculateProfit } from "@/lib/odds";
 import { currentMemberId } from "@/lib/mock-data/league";
+import { mockMatchups } from "@/lib/mock-data/matchups";
 import { mockWallets } from "@/lib/mock-data/wallets";
 import { mockWagers } from "@/lib/mock-data/wagers";
+import { settleWagersForWeek, type SettlementResult } from "./settlement";
 
 const STORAGE_KEY = "jhulads:betting-state";
 
@@ -58,6 +60,7 @@ type BettingContextValue = {
     stakeFaab: number
   ) => Wager;
   resetDemoData: () => void;
+  settleWeek: (week: number) => SettlementResult;
 };
 
 const BettingContext = createContext<BettingContextValue | null>(null);
@@ -143,6 +146,29 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "HYDRATE", payload: seedState() });
   }
 
+  function settleWeek(week: number): SettlementResult {
+    const result = settleWagersForWeek({
+      week,
+      wallet: state.wallet,
+      wagers: state.wagers,
+      matchups: mockMatchups,
+    });
+
+    if (result.updatedWagers) {
+      dispatch({
+        type: "HYDRATE",
+        payload: {
+          wallet: result.updatedWallet,
+          wagers: state.wagers.map(
+            (w) => result.updatedWagers!.find((u) => u.id === w.id) ?? w
+          ),
+        },
+      });
+    }
+
+    return result;
+  }
+
   return (
     <BettingContext.Provider
       value={{
@@ -151,6 +177,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         openWagerForMatchup,
         placeWager,
         resetDemoData,
+        settleWeek,
       }}
     >
       {children}
