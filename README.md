@@ -14,6 +14,16 @@ Manual QA using Playwright MCP for real-browser verification (not just code insp
 
 Also fixed earlier in this pass: a Base UI `nativeButton` console error on every link-rendered button, and a missing desktop wallet balance display (now in a top-right topbar).
 
+Wager settlement (won/lost/refunded, FAAB payouts, weekly & season P&L) shipped in [#8](https://github.com/songjay17/FAAB-website/pull/8).
+
+## Next up
+
+- [ ] Real leaderboard/stat wiring — connect the Leaderboard page to live wallet/wager state instead of static mock rows
+- [ ] Manual void/refund controls — commissioner override for an individual wager, independent of automatic settlement
+- [ ] Week lifecycle and historical navigation — moving between weeks, opening/closing markets, browsing past weeks' results
+- [ ] Persistent local mock state and reset controls — firm up how demo state is saved/reset as more features touch it
+- [ ] Sleeper read-only integration — pull real league/roster data instead of hand-authored mocks
+
 ## Getting Started
 
 First, run the development server:
