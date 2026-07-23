@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,25 @@ export function CommissionerActionCard({
   onAction?: () => void;
   children?: ReactNode;
 }) {
+  const [showPreviewNotice, setShowPreviewNotice] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  function handleClick() {
+    if (onAction) {
+      onAction();
+      return;
+    }
+    setShowPreviewNotice(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setShowPreviewNotice(false), 3000);
+  }
+
   return (
     <Card>
       <CardContent className="flex flex-col gap-3">
@@ -45,10 +64,15 @@ export function CommissionerActionCard({
           variant={variant === "destructive" ? "destructive" : "outline"}
           size="sm"
           className="self-start"
-          onClick={onAction}
+          onClick={handleClick}
         >
           {actionLabel}
         </Button>
+        {showPreviewNotice ? (
+          <p className="text-xs text-muted-foreground" role="status">
+            This is a preview — no changes are made.
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

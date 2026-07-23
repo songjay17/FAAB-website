@@ -170,6 +170,6 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans dark;
+    @apply font-sans;
   }
 }

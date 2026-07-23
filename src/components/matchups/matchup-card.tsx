@@ -48,7 +48,7 @@ export function MatchupCard({
       : awayTeam.name
     : null;
 
-  const isLocked = market.status !== "open";
+  const isLocked = market.status !== "open" || Boolean(existingWager);
 
   return (
     <Card className="p-5">
@@ -62,7 +62,8 @@ export function MatchupCard({
 
       {existingTeamName ? (
         <div className="mt-3 rounded-md bg-open-status px-3 py-1.5 text-xs font-medium text-open-status-foreground">
-          You have {formatFaab(existingWager!.stakeFaab)} FAAB on {existingTeamName}
+          You already have {formatFaab(existingWager!.stakeFaab)} FAAB on {existingTeamName} —
+          only one bet per matchup.
         </div>
       ) : null}
 
@@ -108,8 +109,13 @@ export function MatchupCard({
         <span>
           Pool: {formatFaab(market.totalFaabHome)} / {formatFaab(market.totalFaabAway)} FAAB
         </span>
-        <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs">
-          <Link href={`/matchups/${matchup.id}`}>View matchup &rarr;</Link>
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs"
+          render={<Link href={`/matchups/${matchup.id}`} />}
+        >
+          View matchup &rarr;
         </Button>
       </div>
     </Card>

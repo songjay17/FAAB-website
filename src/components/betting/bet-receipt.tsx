@@ -51,8 +51,8 @@ export function BetReceipt({
       </div>
 
       <SheetFooter>
-        <Button asChild size="lg">
-          <Link href="/bets">View in My Bets</Link>
+        <Button size="lg" render={<Link href="/bets" />}>
+          View in My Bets
         </Button>
         <Button variant="ghost" onClick={onClose}>
           Keep browsing

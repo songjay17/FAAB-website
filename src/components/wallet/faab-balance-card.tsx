@@ -39,10 +39,8 @@ export function FaabBalanceCard({
           <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
             Reserved
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" aria-label="What is reserved FAAB?">
-                  <Info className="size-3" />
-                </button>
+              <TooltipTrigger aria-label="What is reserved FAAB?">
+                <Info className="size-3" />
               </TooltipTrigger>
               <TooltipContent>
                 FAAB locked in your open bets &mdash; returned if you win, forfeited if you
