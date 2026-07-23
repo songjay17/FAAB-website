@@ -11,4 +11,6 @@ export type LeaderboardEntry = {
   winPercent: number;
   largestWin: number;
   currentStreak: string;
+  /** (profit or loss) / (FAAB staked on won + lost wagers only). 0 when nothing has been decided yet. */
+  returnOnWagered: number;
 };
