@@ -19,7 +19,9 @@ import type { BettingMarket, FantasyTeam, WeeklyMatchup } from "@/lib/types";
 function MatchupsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const week = Number(searchParams.get("week") ?? mockLeague.currentWeek);
+  const weekParam = searchParams.get("week");
+  const parsedWeek = weekParam === null ? NaN : Number(weekParam);
+  const week = Number.isInteger(parsedWeek) ? parsedWeek : mockLeague.currentWeek;
 
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [markets, setMarkets] = useState<BettingMarket[]>([]);
