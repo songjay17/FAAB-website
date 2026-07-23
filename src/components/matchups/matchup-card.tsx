@@ -108,8 +108,13 @@ export function MatchupCard({
         <span>
           Pool: {formatFaab(market.totalFaabHome)} / {formatFaab(market.totalFaabAway)} FAAB
         </span>
-        <Button variant="link" size="sm" asChild className="h-auto p-0 text-xs">
-          <Link href={`/matchups/${matchup.id}`}>View matchup &rarr;</Link>
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs"
+          render={<Link href={`/matchups/${matchup.id}`} />}
+        >
+          View matchup &rarr;
         </Button>
       </div>
     </Card>
