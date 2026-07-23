@@ -5,11 +5,11 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 Ongoing manual QA using Playwright MCP for real-browser verification (not just code inspection). Fixed so far: a Base UI `nativeButton` console error on every link-rendered button, and a missing desktop wallet balance display. Next up:
 
 1. **URL param edge cases on `/matchups`** — `?week=abc`, `?week=-1`, `?week=999` (untested `NaN`/out-of-range handling in the week navigation)
-2. **"Reset demo data" flow** — the destructive confirm dialog on the Commissioner page hasn't been clicked through yet
+2. ~~**"Reset demo data" flow**~~ — ✅ verified: confirm dialog opens correctly, resets wallet/wagers to seed state, no leftover UI
 3. **Bet-slip behavior at/past a matchup's lock time** — untested lock-boundary UX
 4. **Leaderboard and League page interactive elements** — confirmed these pages load, but nothing on them has been clicked yet
-5. **Rapid double-click on "Confirm Bet"** — check for a possible duplicate-wager submission race
-6. **Browser back/forward mid-bet-flow** — does bet-slip state survive navigation cleanly, or corrupt
+5. ~~**Rapid double-click on "Confirm Bet"**~~ — ✅ verified safe: button disables synchronously on first click, second simultaneous click is rejected; exactly one wager created, wallet deducted once
+6. ~~**Browser back/forward mid-bet-flow**~~ — ✅ verified safe: navigating away mid-flow cleanly discards the unsubmitted bet slip, no leaked dialog, no corrupted state
 7. **My Bets tab filtering** (Won / Lost / Refunded / All) — only the default "Open" tab has been checked so far
 
 ## Getting Started
