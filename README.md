@@ -1,16 +1,18 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## QA pass — up next
+## QA pass — complete
 
-Ongoing manual QA using Playwright MCP for real-browser verification (not just code inspection). Fixed so far: a Base UI `nativeButton` console error on every link-rendered button, and a missing desktop wallet balance display. Next up:
+Manual QA using Playwright MCP for real-browser verification (not just code inspection). All 7 tracked items resolved:
 
-1. **URL param edge cases on `/matchups`** — `?week=abc`, `?week=-1`, `?week=999` (untested `NaN`/out-of-range handling in the week navigation)
+1. ~~**URL param edge cases on `/matchups`**~~ — 🐛 fixed: `?week=abc` produced a permanently-stuck loading state (`NaN !== NaN` never resolves `loading` to `false`); non-integer week params now fall back to the current week. `?week=-1` / `?week=999` already degraded gracefully into the existing "not posted" empty state.
 2. ~~**"Reset demo data" flow**~~ — ✅ verified: confirm dialog opens correctly, resets wallet/wagers to seed state, no leftover UI
-3. **Bet-slip behavior at/past a matchup's lock time** — untested lock-boundary UX
-4. **Leaderboard and League page interactive elements** — confirmed these pages load, but nothing on them has been clicked yet
+3. ~~**Bet-slip behavior at/past a matchup's lock time**~~ — ✅ verified: locked markets disable odds buttons everywhere (matchup card + detail page) and show "This market is no longer accepting bets," so the bet slip can never open on a locked market in the first place
+4. ~~**Leaderboard and League page interactive elements**~~ — ✅ verified: Leaderboard's This Week/Season tabs, League's schedule links, and the mobile Commissioner Tools card all work correctly
 5. ~~**Rapid double-click on "Confirm Bet"**~~ — ✅ verified safe: button disables synchronously on first click, second simultaneous click is rejected; exactly one wager created, wallet deducted once
 6. ~~**Browser back/forward mid-bet-flow**~~ — ✅ verified safe: navigating away mid-flow cleanly discards the unsubmitted bet slip, no leaked dialog, no corrupted state
-7. **My Bets tab filtering** (Won / Lost / Refunded / All) — only the default "Open" tab has been checked so far
+7. ~~**My Bets tab filtering**~~ — ✅ verified: Open/Won/Lost/Refunded/All tabs all show accurate, non-duplicated wager data
+
+Also fixed earlier in this pass: a Base UI `nativeButton` console error on every link-rendered button, and a missing desktop wallet balance display (now in a top-right topbar).
 
 ## Getting Started
 
