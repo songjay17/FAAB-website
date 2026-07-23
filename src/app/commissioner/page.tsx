@@ -8,6 +8,7 @@ import {
   Undo2,
   ClipboardList,
   Lock,
+  Trophy,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { CommissionerActionCard } from "@/components/commissioner/commissioner-action-card";
+import { SettleWeekCard } from "@/components/commissioner/settle-week-card";
 import { mockLeague } from "@/lib/mock-data";
 import { useBetting } from "@/lib/state/betting-provider";
 
@@ -100,6 +102,7 @@ export default function CommissionerPage() {
           description="Manually control whether a specific matchup accepts bets."
           actionLabel="Manage Markets"
         />
+        <SettleWeekCard icon={Trophy} />
       </div>
 
       <Card>
