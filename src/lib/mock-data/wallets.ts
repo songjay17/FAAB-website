@@ -5,7 +5,7 @@ export const mockWallets: FaabWallet[] = [
     memberId: "member-1",
     totalBudget: 1000,
     availableFaab: 742,
-    reservedFaab: 85,
+    reservedFaab: 75,
     weeklyProfitLoss: 38,
     seasonProfitLoss: 173,
   },

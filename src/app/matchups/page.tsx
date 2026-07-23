@@ -100,7 +100,7 @@ function MatchupsPageContent() {
 
       {loading ? (
         <LoadingSkeleton variant="card" count={4} />
-      ) : matchups.length === 0 ? (
+      ) : markets.length === 0 ? (
         <EmptyState
           icon={Swords}
           title={`Matchups for Week ${week} haven't been posted yet`}

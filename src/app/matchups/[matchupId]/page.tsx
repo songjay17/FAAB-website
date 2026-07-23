@@ -91,7 +91,7 @@ export default function MatchupDetailPage() {
   const homeOwner = mockMembers.find((m) => m.teamId === homeTeam.id);
   const awayOwner = mockMembers.find((m) => m.teamId === awayTeam.id);
   const existingWager = openWagerForMatchup(matchup.id);
-  const isLocked = market.status !== "open";
+  const isLocked = market.status !== "open" || Boolean(existingWager);
 
   function openSlip(teamId: string, opponentTeamId: string) {
     if (!market || !matchup) return;
@@ -123,9 +123,9 @@ export default function MatchupDetailPage() {
 
         {existingWager ? (
           <div className="rounded-md bg-open-status px-3 py-2 text-sm font-medium text-open-status-foreground">
-            You have {formatFaab(existingWager.stakeFaab)} FAAB on{" "}
+            You already have {formatFaab(existingWager.stakeFaab)} FAAB on{" "}
             {existingWager.selectedTeamId === homeTeam.id ? homeTeam.name : awayTeam.name} in
-            this matchup.
+            this matchup — only one bet per matchup.
           </div>
         ) : null}
 
@@ -238,9 +238,11 @@ export default function MatchupDetailPage() {
       <div className="hidden lg:block">
         <Card className="sticky top-6">
           <CardContent className="text-center text-sm text-muted-foreground">
-            {isLocked
-              ? "This market is no longer accepting bets."
-              : "Select a team's odds to start your bet slip."}
+            {existingWager
+              ? "You already have a bet on this matchup."
+              : isLocked
+                ? "This market is no longer accepting bets."
+                : "Select a team's odds to start your bet slip."}
           </CardContent>
         </Card>
       </div>

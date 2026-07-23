@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatFaab } from "@/lib/odds";
 import { mockLeague, mockMembers, mockTeams } from "@/lib/mock-data";
@@ -64,6 +66,25 @@ export default function LeagueOverviewPage() {
               </tbody>
             </table>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="lg:hidden">
+        <CardContent className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-secondary text-foreground">
+              <ShieldCheck className="size-4" />
+            </span>
+            <div>
+              <p className="font-medium text-foreground">Commissioner Tools</p>
+              <p className="text-sm text-muted-foreground">
+                Manage odds, FAAB, and league settings.
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" render={<Link href="/commissioner" />}>
+            Open
+          </Button>
         </CardContent>
       </Card>
 

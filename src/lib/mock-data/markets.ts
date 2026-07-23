@@ -1,4 +1,4 @@
-import type { BettingMarket, MarketStatus, Odds } from "@/lib/types";
+import type { BettingMarket, Odds } from "@/lib/types";
 import { mockLineups, mockMatchups } from "./matchups";
 
 /**
@@ -27,11 +27,6 @@ function projectionToMoneylines(homePts: number, awayPts: number): Odds {
   };
 }
 
-function marketStatusFor(matchupWeek: number): MarketStatus {
-  if (matchupWeek === 8) return "open";
-  return "open";
-}
-
 // Deterministic pseudo-random FAAB pool sizes, seeded per matchup id so
 // server and client render identically (avoids hydration mismatch).
 function seededPoolAmount(seed: string, base: number, range: number): number {
@@ -42,8 +37,10 @@ function seededPoolAmount(seed: string, base: number, range: number): number {
   return base + (hash % range);
 }
 
+// Week 8 matchups intentionally have no market yet (odds not posted) —
+// this is what powers the "matchups not posted" empty state.
 export const mockMarkets: BettingMarket[] = mockMatchups
-  .filter((m) => m.status === "upcoming")
+  .filter((m) => m.status === "upcoming" && m.week !== 8)
   .map((matchup) => {
     const homeLineup = mockLineups.find(
       (l) => l.matchupId === matchup.id && l.teamId === matchup.homeTeamId
@@ -57,7 +54,7 @@ export const mockMarkets: BettingMarket[] = mockMatchups
     return {
       id: `market-${matchup.id}`,
       matchupId: matchup.id,
-      status: marketStatusFor(matchup.week),
+      status: "open",
       odds: projectionToMoneylines(homePts, awayPts),
       totalFaabHome: seededPoolAmount(`${matchup.id}-home`, 150, 250),
       totalFaabAway: seededPoolAmount(`${matchup.id}-away`, 120, 220),
