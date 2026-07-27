@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { formatFaab } from "@/lib/odds";
+import { formatFaab, formatPercent } from "@/lib/odds";
 import type { LeaderboardEntry } from "@/lib/types";
 
 function ProfitLoss({ value }: { value: number }) {
@@ -18,6 +18,22 @@ function ProfitLoss({ value }: { value: number }) {
   );
 }
 
+function ReturnOnWagered({ value }: { value: number }) {
+  const positive = value > 0;
+  const zero = value === 0;
+  return (
+    <span
+      className={cn(
+        "font-mono tabular-nums",
+        zero ? "text-muted-foreground" : positive ? "text-win-foreground" : "text-loss-foreground"
+      )}
+    >
+      {positive ? "+" : ""}
+      {formatPercent(value)}
+    </span>
+  );
+}
+
 export function LeaderboardTable({
   entries,
   currentMemberId,
@@ -26,7 +42,7 @@ export function LeaderboardTable({
   currentMemberId: string;
 }) {
   return (
-    <div>
+    <div data-testid="leaderboard">
       {/* Desktop table */}
       <div className="hidden overflow-x-auto rounded-lg border border-border lg:block">
         <table className="w-full text-sm">
@@ -41,12 +57,15 @@ export function LeaderboardTable({
               <th className="px-4 py-2.5 font-medium">Win%</th>
               <th className="px-4 py-2.5 font-medium">Largest Win</th>
               <th className="px-4 py-2.5 font-medium">Streak</th>
+              <th className="px-4 py-2.5 font-medium">ROI</th>
             </tr>
           </thead>
           <tbody>
             {entries.map((entry) => (
               <tr
                 key={entry.memberId}
+                data-testid="leaderboard-row"
+                data-member-id={entry.memberId}
                 className={cn(
                   "border-b border-border/60 last:border-0",
                   entry.memberId === currentMemberId && "bg-open-status/40"
@@ -56,10 +75,15 @@ export function LeaderboardTable({
                   #{entry.rank}
                 </td>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-foreground">{entry.displayName}</p>
+                  <p className="font-medium text-foreground">
+                    {entry.displayName}
+                    {entry.memberId === currentMemberId ? (
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>
+                    ) : null}
+                  </p>
                   <p className="text-xs text-muted-foreground">{entry.teamName}</p>
                 </td>
-                <td className="px-4 py-3 font-mono font-semibold tabular-nums">
+                <td className="px-4 py-3 font-mono font-semibold tabular-nums" data-testid="faab-balance">
                   {formatFaab(entry.faabBalance)}
                 </td>
                 <td className="px-4 py-3">
@@ -68,7 +92,7 @@ export function LeaderboardTable({
                 <td className="px-4 py-3 font-mono text-muted-foreground tabular-nums">
                   {formatFaab(entry.totalWagered)}
                 </td>
-                <td className="px-4 py-3 font-mono tabular-nums text-muted-foreground">
+                <td className="px-4 py-3 font-mono tabular-nums text-muted-foreground" data-testid="wins-losses">
                   {entry.betsWon}-{entry.betsLost}
                 </td>
                 <td className="px-4 py-3 font-mono tabular-nums text-muted-foreground">
@@ -79,6 +103,9 @@ export function LeaderboardTable({
                 </td>
                 <td className="px-4 py-3 font-mono tabular-nums text-muted-foreground">
                   {entry.currentStreak}
+                </td>
+                <td className="px-4 py-3">
+                  <ReturnOnWagered value={entry.returnOnWagered} />
                 </td>
               </tr>
             ))}
@@ -91,6 +118,8 @@ export function LeaderboardTable({
         {entries.map((entry) => (
           <div
             key={entry.memberId}
+            data-testid="leaderboard-row"
+            data-member-id={entry.memberId}
             className={cn(
               "rounded-lg border border-border p-4",
               entry.memberId === currentMemberId && "border-primary/50 bg-open-status/40"
@@ -102,21 +131,26 @@ export function LeaderboardTable({
                   #{entry.rank}
                 </span>
                 <div>
-                  <p className="font-medium text-foreground">{entry.displayName}</p>
+                  <p className="font-medium text-foreground">
+                    {entry.displayName}
+                    {entry.memberId === currentMemberId ? (
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>
+                    ) : null}
+                  </p>
                   <p className="text-xs text-muted-foreground">{entry.teamName}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-mono text-lg font-bold tabular-nums">
+                <p className="font-mono text-lg font-bold tabular-nums" data-testid="faab-balance">
                   {formatFaab(entry.faabBalance)}
                 </p>
                 <ProfitLoss value={entry.seasonProfitLoss} />
               </div>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/60 pt-3 text-center text-xs">
+            <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border/60 pt-3 text-center text-xs">
               <div>
                 <p className="text-muted-foreground">W-L</p>
-                <p className="font-mono font-medium tabular-nums">
+                <p className="font-mono font-medium tabular-nums" data-testid="wins-losses">
                   {entry.betsWon}-{entry.betsLost}
                 </p>
               </div>
@@ -127,6 +161,12 @@ export function LeaderboardTable({
               <div>
                 <p className="text-muted-foreground">Streak</p>
                 <p className="font-mono font-medium tabular-nums">{entry.currentStreak}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">ROI</p>
+                <p className="font-mono font-medium tabular-nums">
+                  <ReturnOnWagered value={entry.returnOnWagered} />
+                </p>
               </div>
             </div>
           </div>

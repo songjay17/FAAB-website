@@ -8,21 +8,23 @@ import { LeaderboardTable } from "@/components/leaderboard/leaderboard-table";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
 import { currentMemberId } from "@/lib/mock-data/league";
+import { useBetting } from "@/lib/state/betting-provider";
 import type { LeaderboardEntry } from "@/lib/types";
 
 function LeaderboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scope = (searchParams.get("scope") as "week" | "season") ?? "season";
+  const { allWallets, allWagers } = useBetting();
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [loadedScope, setLoadedScope] = useState<string | null>(null);
 
   useEffect(() => {
-    getLeaderboard(scope).then((result) => {
+    getLeaderboard(scope, allWallets, allWagers).then((result) => {
       setEntries(result);
       setLoadedScope(scope);
     });
-  }, [scope]);
+  }, [scope, allWallets, allWagers]);
 
   const isLoading = loadedScope !== scope;
 

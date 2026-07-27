@@ -27,15 +27,15 @@ const skipReasonLabel: Record<string, string> = {
 };
 
 export function SettleWeekCard({ icon: Icon }: { icon: LucideIcon }) {
-  const { wagers, settleWeek } = useBetting();
+  const { allWagers, settleWeek } = useBetting();
   const [settling, setSettling] = useState(false);
   const [result, setResult] = useState<SettlementResult | null>(null);
 
   const openWeeks = Array.from(
-    new Set(wagers.filter((w) => w.status === "open").map((w) => w.week))
+    new Set(allWagers.filter((w) => w.status === "open").map((w) => w.week))
   ).sort((a, b) => a - b);
   const week = openWeeks[0];
-  const eligibleCount = wagers.filter((w) => w.status === "open" && w.week === week).length;
+  const eligibleCount = allWagers.filter((w) => w.status === "open" && w.week === week).length;
 
   function handleSettle() {
     if (week === undefined || settling) return;

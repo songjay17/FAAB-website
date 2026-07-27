@@ -27,7 +27,7 @@ import type {
 } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { wallet, wagers } = useBetting();
+  const { wallet, wagers, allWallets, allWagers } = useBetting();
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [markets, setMarkets] = useState<BettingMarket[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
@@ -40,13 +40,13 @@ export default function DashboardPage() {
         getTeams(),
       ]);
       const weekMarkets = await getMarketsForWeek(weekMatchups.map((m) => m.id));
-      const board = await getLeaderboard("season");
+      const board = await getLeaderboard("season", allWallets, allWagers);
       setMatchups(weekMatchups);
       setMarkets(weekMarkets);
       setTeams(teamList);
       setLeaderboard(board.slice(0, 5));
     })();
-  }, []);
+  }, [allWallets, allWagers]);
 
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const featured = matchups[0];

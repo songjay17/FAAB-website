@@ -18,8 +18,12 @@ import { settleWagersForWeek, type SettlementResult } from "./settlement";
 
 const STORAGE_KEY = "jhulads:betting-state";
 
+// Holds every member's wallet and wager history, not just the signed-in
+// member's — the leaderboard needs the whole league to rank members against
+// each other. `wallet`/`wagers` on the context stay scoped to the current
+// member (see below) so every existing consumer is unaffected.
 type BettingState = {
-  wallet: FaabWallet;
+  wallets: FaabWallet[];
   wagers: Wager[];
 };
 
@@ -27,9 +31,20 @@ type BettingAction = { type: "HYDRATE"; payload: BettingState };
 
 function seedState(): BettingState {
   return {
-    wallet: mockWallets.find((w) => w.memberId === currentMemberId)!,
-    wagers: mockWagers.filter((w) => w.memberId === currentMemberId),
+    wallets: mockWallets,
+    wagers: mockWagers,
   };
+}
+
+/** Guards against a pre-existing localStorage entry saved by an older shape of this state. */
+function isValidBettingState(value: unknown): value is BettingState {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<BettingState>;
+  return (
+    Array.isArray(candidate.wallets) &&
+    Array.isArray(candidate.wagers) &&
+    candidate.wallets.some((w) => w.memberId === currentMemberId)
+  );
 }
 
 let wagerCounter = 1000;
@@ -50,6 +65,8 @@ function bettingReducer(state: BettingState, action: BettingAction): BettingStat
 type BettingContextValue = {
   wallet: FaabWallet;
   wagers: Wager[];
+  allWallets: FaabWallet[];
+  allWagers: Wager[];
   openWagerForMatchup: (matchupId: string) => Wager | undefined;
   placeWager: (
     market: BettingMarket,
@@ -74,8 +91,12 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as BettingState;
-        dispatch({ type: "HYDRATE", payload: parsed });
+        const parsed: unknown = JSON.parse(raw);
+        if (isValidBettingState(parsed)) {
+          dispatch({ type: "HYDRATE", payload: parsed });
+        } else {
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
       }
     } catch {
       // Ignore corrupt/unavailable storage (e.g. private browsing) and keep seed state.
@@ -93,8 +114,11 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     }
   }, [state]);
 
+  const wallet = state.wallets.find((w) => w.memberId === currentMemberId)!;
+  const wagers = state.wagers.filter((w) => w.memberId === currentMemberId);
+
   function openWagerForMatchup(matchupId: string) {
-    return state.wagers.find((w) => w.matchupId === matchupId && w.status === "open");
+    return wagers.find((w) => w.matchupId === matchupId && w.status === "open");
   }
 
   function placeWager(
@@ -127,11 +151,15 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     dispatch({
       type: "HYDRATE",
       payload: {
-        wallet: {
-          ...state.wallet,
-          availableFaab: state.wallet.availableFaab - stakeFaab,
-          reservedFaab: state.wallet.reservedFaab + stakeFaab,
-        },
+        wallets: state.wallets.map((w) =>
+          w.memberId === currentMemberId
+            ? {
+                ...w,
+                availableFaab: w.availableFaab - stakeFaab,
+                reservedFaab: w.reservedFaab + stakeFaab,
+              }
+            : w
+        ),
         wagers: [newWager, ...state.wagers],
       },
     });
@@ -147,33 +175,70 @@ export function BettingProvider({ children }: { children: ReactNode }) {
   }
 
   function settleWeek(week: number): SettlementResult {
-    const result = settleWagersForWeek({
-      week,
-      wallet: state.wallet,
-      wagers: state.wagers,
-      matchups: mockMatchups,
-    });
+    // Settlement is a league-wide commissioner action: it resolves every
+    // member's open wagers for the week, not just the signed-in member's.
+    // The returned summary aggregates across all members; per-member wallet
+    // updates are applied directly to state rather than surfaced here.
+    let combinedWallets = state.wallets;
+    let combinedWagers = state.wagers;
+    let anyUpdated = false;
 
-    if (result.updatedWagers) {
-      dispatch({
-        type: "HYDRATE",
-        payload: {
-          wallet: result.updatedWallet,
-          wagers: state.wagers.map(
-            (w) => result.updatedWagers!.find((u) => u.id === w.id) ?? w
-          ),
-        },
+    const aggregate: SettlementResult = {
+      week,
+      processed: 0,
+      won: 0,
+      lost: 0,
+      refunded: 0,
+      totalPaidOut: 0,
+      skipped: [],
+      updatedWallet: wallet,
+      updatedWagers: null,
+    };
+
+    for (const memberWallet of state.wallets) {
+      const memberWagers = combinedWagers.filter((w) => w.memberId === memberWallet.memberId);
+      const result = settleWagersForWeek({
+        week,
+        wallet: memberWallet,
+        wagers: memberWagers,
+        matchups: mockMatchups,
       });
+
+      aggregate.processed += result.processed;
+      aggregate.won += result.won;
+      aggregate.lost += result.lost;
+      aggregate.refunded += result.refunded;
+      aggregate.totalPaidOut = Math.round((aggregate.totalPaidOut + result.totalPaidOut) * 100) / 100;
+      aggregate.skipped.push(...result.skipped);
+
+      if (result.updatedWagers) {
+        anyUpdated = true;
+        combinedWallets = combinedWallets.map((w) =>
+          w.memberId === memberWallet.memberId ? result.updatedWallet : w
+        );
+        combinedWagers = combinedWagers.map(
+          (w) => result.updatedWagers!.find((u) => u.id === w.id) ?? w
+        );
+        if (memberWallet.memberId === currentMemberId) {
+          aggregate.updatedWallet = result.updatedWallet;
+        }
+      }
     }
 
-    return result;
+    if (anyUpdated) {
+      dispatch({ type: "HYDRATE", payload: { wallets: combinedWallets, wagers: combinedWagers } });
+    }
+
+    return aggregate;
   }
 
   return (
     <BettingContext.Provider
       value={{
-        wallet: state.wallet,
-        wagers: state.wagers,
+        wallet,
+        wagers,
+        allWallets: state.wallets,
+        allWagers: state.wagers,
         openWagerForMatchup,
         placeWager,
         resetDemoData,
