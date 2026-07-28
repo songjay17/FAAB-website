@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { settleWagersForWeek } from "@/lib/state/settlement";
+import { settleWagersForWeek, voidWager } from "@/lib/state/settlement";
 import { calculatePayout } from "@/lib/odds";
 import type { FaabWallet, Wager, WeeklyMatchup } from "@/lib/types";
 
@@ -257,5 +257,53 @@ describe("settleWagersForWeek", () => {
 
     expect(result.processed).toBe(1);
     expect(result.updatedWagers![0].id).toBe("w6");
+  });
+});
+
+describe("voidWager", () => {
+  it("refunds an open wager: releases the reservation, no P/L impact", () => {
+    const wallet = makeWallet({ availableFaab: 500, reservedFaab: 100, weeklyProfitLoss: 5, seasonProfitLoss: 20 });
+    const wager = makeWager({ stakeFaab: 30, status: "open" });
+
+    const result = voidWager(wallet, wager);
+
+    expect(result.updatedWager.status).toBe("refunded");
+    expect(result.updatedWager.finalPayout).toBe(30);
+    expect(result.updatedWager.settledAt).toBeDefined();
+    expect(result.updatedWallet.availableFaab).toBe(530);
+    expect(result.updatedWallet.reservedFaab).toBe(70);
+    // Voiding is profit-neutral, same as an automatic tie-refund.
+    expect(result.updatedWallet.weeklyProfitLoss).toBe(5);
+    expect(result.updatedWallet.seasonProfitLoss).toBe(20);
+  });
+
+  it("is a no-op on a wager that is not open (already won/lost/refunded)", () => {
+    const wallet = makeWallet({ availableFaab: 500, reservedFaab: 100 });
+    const wager = makeWager({ status: "won", finalPayout: 50, settledAt: "2026-07-20T00:00:00.000Z" });
+
+    const result = voidWager(wallet, wager);
+
+    expect(result.updatedWager).toEqual(wager);
+    expect(result.updatedWallet).toEqual(wallet);
+  });
+
+  it("never lets reservedFaab go negative", () => {
+    const wallet = makeWallet({ availableFaab: 0, reservedFaab: 5 });
+    const wager = makeWager({ stakeFaab: 30, status: "open" });
+
+    const result = voidWager(wallet, wager);
+
+    expect(result.updatedWallet.reservedFaab).toBeGreaterThanOrEqual(0);
+  });
+
+  it("is idempotent: voiding an already-voided wager does not double-refund", () => {
+    const wallet = makeWallet({ availableFaab: 500, reservedFaab: 100 });
+    const wager = makeWager({ stakeFaab: 30, status: "open" });
+
+    const first = voidWager(wallet, wager);
+    const second = voidWager(first.updatedWallet, first.updatedWager);
+
+    expect(second.updatedWallet).toEqual(first.updatedWallet);
+    expect(second.updatedWager).toEqual(first.updatedWager);
   });
 });
