@@ -40,6 +40,40 @@ function emptyResult(week: number, wallet: FaabWallet): SettlementResult {
   };
 }
 
+export type VoidResult = {
+  updatedWallet: FaabWallet;
+  updatedWager: Wager;
+};
+
+/**
+ * Manually refunds a single open wager outside the normal weekly settlement
+ * flow (e.g. a market was posted in error). Only ever acts on `open` wagers,
+ * so re-invoking on an already-voided/settled wager is a no-op that returns
+ * the input unchanged — same idempotency guarantee as settleWagersForWeek.
+ * Mirrors the tie-refund branch there: release the reservation, no P/L impact.
+ */
+export function voidWager(wallet: FaabWallet, wager: Wager): VoidResult {
+  if (wager.status !== "open") {
+    return { updatedWallet: wallet, updatedWager: wager };
+  }
+
+  const finalPayout = wager.stakeFaab;
+
+  return {
+    updatedWallet: {
+      ...wallet,
+      availableFaab: Math.round((wallet.availableFaab + finalPayout) * 100) / 100,
+      reservedFaab: Math.max(0, Math.round((wallet.reservedFaab - wager.stakeFaab) * 100) / 100),
+    },
+    updatedWager: {
+      ...wager,
+      status: "refunded",
+      finalPayout,
+      settledAt: new Date().toISOString(),
+    },
+  };
+}
+
 /**
  * Settles all open wagers for a given week against final matchup scores.
  * Pure function: takes current state, returns the next state plus a summary.

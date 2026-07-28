@@ -14,7 +14,7 @@ import { currentMemberId } from "@/lib/mock-data/league";
 import { mockMatchups } from "@/lib/mock-data/matchups";
 import { mockWallets } from "@/lib/mock-data/wallets";
 import { mockWagers } from "@/lib/mock-data/wagers";
-import { settleWagersForWeek, type SettlementResult } from "./settlement";
+import { settleWagersForWeek, voidWager as voidWagerPure, type SettlementResult } from "./settlement";
 
 const STORAGE_KEY = "jhulads:betting-state";
 
@@ -78,6 +78,8 @@ type BettingContextValue = {
   ) => Wager;
   resetDemoData: () => void;
   settleWeek: (week: number) => SettlementResult;
+  /** Manually refunds a single open wager league-wide, independent of weekly settlement. */
+  voidWager: (wagerId: string, reason: string) => { ok: true } | { ok: false; error: string };
 };
 
 const BettingContext = createContext<BettingContextValue | null>(null);
@@ -232,6 +234,36 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     return aggregate;
   }
 
+  function voidWager(wagerId: string, reason: string): { ok: true } | { ok: false; error: string } {
+    const wager = state.wagers.find((w) => w.id === wagerId);
+    if (!wager) {
+      return { ok: false, error: "Wager not found." };
+    }
+    if (wager.status !== "open") {
+      return { ok: false, error: "Only open wagers can be voided." };
+    }
+    if (!reason.trim()) {
+      return { ok: false, error: "A reason is required." };
+    }
+
+    const memberWallet = state.wallets.find((w) => w.memberId === wager.memberId);
+    if (!memberWallet) {
+      return { ok: false, error: "Member wallet not found." };
+    }
+
+    const { updatedWallet, updatedWager } = voidWagerPure(memberWallet, wager);
+
+    dispatch({
+      type: "HYDRATE",
+      payload: {
+        wallets: state.wallets.map((w) => (w.memberId === wager.memberId ? updatedWallet : w)),
+        wagers: state.wagers.map((w) => (w.id === wagerId ? updatedWager : w)),
+      },
+    });
+
+    return { ok: true };
+  }
+
   return (
     <BettingContext.Provider
       value={{
@@ -243,6 +275,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         placeWager,
         resetDemoData,
         settleWeek,
+        voidWager,
       }}
     >
       {children}

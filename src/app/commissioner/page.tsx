@@ -26,10 +26,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { CommissionerActionCard } from "@/components/commissioner/commissioner-action-card";
 import { SettleWeekCard } from "@/components/commissioner/settle-week-card";
+import { VoidWagerCard } from "@/components/commissioner/void-wager-card";
 import { mockLeague } from "@/lib/mock-data";
 import { useBetting } from "@/lib/state/betting-provider";
 
-const auditLog = [
+const seedAuditLog = [
   {
     id: "log-1",
     text: "Justin adjusted Ravi's FAAB from 585 to 615 — reason: waiver correction.",
@@ -54,7 +55,25 @@ const auditLog = [
 
 export default function CommissionerPage() {
   const [betsPaused, setBetsPaused] = useState(false);
+  const [liveAuditLog, setLiveAuditLog] = useState<{ id: string; text: string; time: string }[]>([]);
   const { resetDemoData } = useBetting();
+  const auditLog = [...liveAuditLog, ...seedAuditLog];
+
+  function logVoid(summary: string) {
+    setLiveAuditLog((prev) => [
+      {
+        id: `live-${Date.now()}`,
+        text: summary,
+        time: new Date().toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      },
+      ...prev,
+    ]);
+  }
 
   return (
     <div className="space-y-6">
@@ -83,13 +102,7 @@ export default function CommissionerPage() {
           description="Correct a member's balance. A reason is required and logged below."
           actionLabel="Adjust FAAB"
         />
-        <CommissionerActionCard
-          icon={Undo2}
-          title="Void or refund a bet"
-          description="Return a member's stake when a market was posted in error."
-          actionLabel="Review & Void"
-          variant="destructive"
-        />
+        <VoidWagerCard icon={Undo2} onVoided={logVoid} />
         <CommissionerActionCard
           icon={ClipboardList}
           title="Review all wagers"
