@@ -19,6 +19,14 @@ import { settleWagersForWeek, voidWager as voidWagerPure, type SettlementResult 
 
 const STORAGE_KEY = "jhulads:betting-state";
 
+// How long a member can self-cancel a just-placed bet for a full refund —
+// misclick protection, not a way to back out once the market's moved.
+// Real sportsbooks don't let you unwind a bet just because you regret it or
+// news breaks (e.g. a player gets hurt) — that risk is exactly what the odds
+// already price in. Once this window passes, only a commissioner void can
+// undo a wager.
+export const SELF_CANCEL_WINDOW_MS = 5 * 60 * 1000;
+
 // Holds every member's wallet and wager history, not just the signed-in
 // member's — the leaderboard needs the whole league to rank members against
 // each other. `wallet`/`wagers` on the context stay scoped to the current
@@ -88,7 +96,7 @@ type BettingContextValue = {
   settleWeek: (week: number) => SettlementResult;
   /** Manually refunds a single open wager league-wide, independent of weekly settlement. */
   voidWager: (wagerId: string, reason: string) => { ok: true } | { ok: false; error: string };
-  /** Lets the signed-in member cancel their own open wager for a full refund, before its matchup locks. */
+  /** Lets the signed-in member cancel their own wager for a full refund within a short grace window after placing it (misclick protection only). */
   cancelWager: (wagerId: string) => { ok: true } | { ok: false; error: string };
   /** Commissioner override: manually open/lock a matchup's market, independent of settlement. */
   setMarketStatus: (matchupId: string, status: MarketStatus) => void;
@@ -289,9 +297,12 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     if (wager.status !== "open") {
       return { ok: false, error: "Only open wagers can be cancelled." };
     }
-    const market = state.markets.find((m) => m.matchupId === wager.matchupId);
-    if (market && market.status !== "open") {
-      return { ok: false, error: "This matchup has already locked — ask the commissioner to void it instead." };
+    const placedAgoMs = Date.now() - new Date(wager.placedAt).getTime();
+    if (placedAgoMs > SELF_CANCEL_WINDOW_MS) {
+      return {
+        ok: false,
+        error: "The self-cancel window has passed — ask the commissioner to void it instead.",
+      };
     }
 
     const { updatedWallet, updatedWager } = voidWagerPure(wallet, wager);

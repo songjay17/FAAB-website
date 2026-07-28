@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { WagerStatusBadge } from "./wager-status-badge";
 import { formatFaab, formatMoneyline } from "@/lib/odds";
-import { useBetting } from "@/lib/state/betting-provider";
+import { useBetting, SELF_CANCEL_WINDOW_MS } from "@/lib/state/betting-provider";
 import { mockMatchups } from "@/lib/mock-data/matchups";
 import type { Wager } from "@/lib/types";
 
@@ -40,6 +40,17 @@ export function WagerCard({
   const { cancelWager, allMarkets } = useBetting();
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [withinCancelWindow, setWithinCancelWindow] = useState(false);
+
+  useEffect(() => {
+    const placedAt = new Date(wager.placedAt).getTime();
+    function check() {
+      setWithinCancelWindow(Date.now() - placedAt <= SELF_CANCEL_WINDOW_MS);
+    }
+    check();
+    const id = setInterval(check, 1000);
+    return () => clearInterval(id);
+  }, [wager.placedAt]);
 
   const payoutLabel = wager.status === "open" ? "Potential payout" : "Payout";
   const payoutValue =
@@ -48,7 +59,7 @@ export function WagerCard({
   const matchup = mockMatchups.find((m) => m.id === wager.matchupId);
   const market = allMarkets.find((m) => m.matchupId === wager.matchupId);
   const isLocked = market ? market.status !== "open" : false;
-  const canCancel = wager.status === "open" && !isLocked;
+  const canCancel = wager.status === "open" && withinCancelWindow;
 
   function handleCancel() {
     const result = cancelWager(wager.id);
@@ -119,8 +130,9 @@ export function WagerCard({
                     <AlertDialogTitle>Cancel this bet?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Your {formatFaab(wager.stakeFaab)} FAAB stake on {teamName}{" "}
-                      will be refunded in full. This can&apos;t be undone, and you can rebet up
-                      until the matchup locks.
+                      will be refunded in full. This can&apos;t be undone. Self-cancel is only
+                      for misclicks — once the grace window passes, only the commissioner can
+                      void a bet.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
