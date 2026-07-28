@@ -1,27 +1,9 @@
-import type { LineupSlot, ProjectedLineup, WeeklyMatchup } from "@/lib/types";
+import type { ProjectedLineup, WeeklyMatchup } from "@/lib/types";
+import { getOptimalLineup } from "@/lib/state/optimal-lineup";
 import { mockPlayersByTeam } from "./teams";
 
 function buildLineup(teamId: string, matchupId: string): ProjectedLineup {
-  const players = mockPlayersByTeam[teamId];
-  const bySlot: Array<{ slot: string; playerId: string }> = [
-    { slot: "QB", playerId: players[0].id },
-    { slot: "RB", playerId: players[1].id },
-    { slot: "RB", playerId: players[2].id },
-    { slot: "WR", playerId: players[3].id },
-    { slot: "WR", playerId: players[4].id },
-    { slot: "TE", playerId: players[5].id },
-    { slot: "FLEX", playerId: players[6].id },
-    { slot: "K", playerId: players[7].id },
-    { slot: "DEF", playerId: players[8].id },
-  ];
-  const slots: LineupSlot[] = bySlot.map(({ slot, playerId }) => ({
-    slot,
-    player: players.find((p) => p.id === playerId)!,
-  }));
-  const totalProjectedPoints = Math.round(
-    slots.reduce((sum, s) => sum + s.player.projectedPoints, 0) * 10
-  ) / 10;
-  return { teamId, matchupId, slots, totalProjectedPoints };
+  return getOptimalLineup(teamId, matchupId, mockPlayersByTeam[teamId]);
 }
 
 // Week 7 matchups (the current week).

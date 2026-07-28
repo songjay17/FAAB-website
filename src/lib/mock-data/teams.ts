@@ -83,8 +83,11 @@ export const mockTeams: FantasyTeam[] = [
   },
 ];
 
-// Enough roster depth per team to build a realistic optimal lineup
-// (QB, RB, RB, WR, WR, TE, FLEX, K, DEF).
+// Real rosters carry bench depth beyond the 9 starting slots. Odds are
+// computed from each team's best-possible lineup across this full list (see
+// getOptimalLineup in matchup-service.ts), not whatever a member has
+// actually started — so benching a stud right before betting opens can't
+// manufacture worse odds than the roster actually supports.
 export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
   "team-1": [
     { id: "t1-qb1", name: "Jalen Hurts", position: "QB", nflTeam: "PHI", projectedPoints: 24.1 },
@@ -96,6 +99,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t1-flex1", name: "Rome Odunze", position: "WR", nflTeam: "CHI", projectedPoints: 12.9 },
     { id: "t1-k1", name: "Jake Elliott", position: "K", nflTeam: "PHI", projectedPoints: 8.1 },
     { id: "t1-def1", name: "Eagles D/ST", position: "DEF", nflTeam: "PHI", projectedPoints: 9.0 },
+    { id: "t1-bench1", name: "Kenneth Walker III", position: "RB", nflTeam: "SEA", projectedPoints: 15.1 },
+    { id: "t1-bench2", name: "Jordan Addison", position: "WR", nflTeam: "MIN", projectedPoints: 13.7 },
   ],
   "team-2": [
     { id: "t2-qb1", name: "Jayden Daniels", position: "QB", nflTeam: "WAS", projectedPoints: 22.6 },
@@ -107,6 +112,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t2-flex1", name: "Jayden Reed", position: "WR", nflTeam: "GB", projectedPoints: 11.2 },
     { id: "t2-k1", name: "Younghoe Koo", position: "K", nflTeam: "ATL", projectedPoints: 7.6 },
     { id: "t2-def1", name: "Commanders D/ST", position: "DEF", nflTeam: "WAS", projectedPoints: 7.3 },
+    { id: "t2-bench1", name: "Tyrone Tracy Jr.", position: "RB", nflTeam: "NYG", projectedPoints: 10.8 },
+    { id: "t2-bench2", name: "Rashid Shaheed", position: "WR", nflTeam: "NO", projectedPoints: 10.1 },
   ],
   "team-3": [
     { id: "t3-qb1", name: "C.J. Stroud", position: "QB", nflTeam: "HOU", projectedPoints: 21.8 },
@@ -118,6 +125,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t3-flex1", name: "Tank Dell", position: "WR", nflTeam: "HOU", projectedPoints: 10.6 },
     { id: "t3-k1", name: "Ka'imi Fairbairn", position: "K", nflTeam: "HOU", projectedPoints: 8.4 },
     { id: "t3-def1", name: "Texans D/ST", position: "DEF", nflTeam: "HOU", projectedPoints: 8.2 },
+    { id: "t3-bench1", name: "Jaylen Warren", position: "RB", nflTeam: "PIT", projectedPoints: 11.4 },
+    { id: "t3-bench2", name: "Jayden Higgins", position: "WR", nflTeam: "HOU", projectedPoints: 9.5 },
   ],
   "team-4": [
     { id: "t4-qb1", name: "Justin Herbert", position: "QB", nflTeam: "LAC", projectedPoints: 20.9 },
@@ -129,6 +138,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t4-flex1", name: "Calvin Ridley", position: "WR", nflTeam: "TEN", projectedPoints: 11.8 },
     { id: "t4-k1", name: "Cameron Dicker", position: "K", nflTeam: "LAC", projectedPoints: 7.9 },
     { id: "t4-def1", name: "Chargers D/ST", position: "DEF", nflTeam: "LAC", projectedPoints: 7.7 },
+    { id: "t4-bench1", name: "Jaylen Warren", position: "RB", nflTeam: "PIT", projectedPoints: 11.9 },
+    { id: "t4-bench2", name: "Jerry Jeudy", position: "WR", nflTeam: "CLE", projectedPoints: 10.3 },
   ],
   "team-5": [
     { id: "t5-qb1", name: "Baker Mayfield", position: "QB", nflTeam: "TB", projectedPoints: 19.7 },
@@ -140,6 +151,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t5-flex1", name: "Jauan Jennings", position: "WR", nflTeam: "SF", projectedPoints: 10.4 },
     { id: "t5-k1", name: "Chase McLaughlin", position: "K", nflTeam: "TB", projectedPoints: 7.8 },
     { id: "t5-def1", name: "Buccaneers D/ST", position: "DEF", nflTeam: "TB", projectedPoints: 6.9 },
+    { id: "t5-bench1", name: "Rachaad White", position: "RB", nflTeam: "TB", projectedPoints: 10.7 },
+    { id: "t5-bench2", name: "Xavier Legette", position: "WR", nflTeam: "CAR", projectedPoints: 9.2 },
   ],
   "team-6": [
     { id: "t6-qb1", name: "Jared Goff", position: "QB", nflTeam: "DET", projectedPoints: 19.3 },
@@ -151,6 +164,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t6-flex1", name: "Josh Downs", position: "WR", nflTeam: "IND", projectedPoints: 9.9 },
     { id: "t6-k1", name: "Jake Bates", position: "K", nflTeam: "DET", projectedPoints: 8.0 },
     { id: "t6-def1", name: "Lions D/ST", position: "DEF", nflTeam: "DET", projectedPoints: 7.1 },
+    { id: "t6-bench1", name: "Tyjae Spears", position: "RB", nflTeam: "TEN", projectedPoints: 10.2 },
+    { id: "t6-bench2", name: "Wan'Dale Robinson", position: "WR", nflTeam: "NYG", projectedPoints: 9.3 },
   ],
   "team-7": [
     { id: "t7-qb1", name: "Bo Nix", position: "QB", nflTeam: "DEN", projectedPoints: 18.6 },
@@ -162,6 +177,8 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t7-flex1", name: "Romeo Doubs", position: "WR", nflTeam: "GB", projectedPoints: 9.7 },
     { id: "t7-k1", name: "Wil Lutz", position: "K", nflTeam: "DEN", projectedPoints: 7.5 },
     { id: "t7-def1", name: "Broncos D/ST", position: "DEF", nflTeam: "DEN", projectedPoints: 8.6 },
+    { id: "t7-bench1", name: "Braelon Allen", position: "RB", nflTeam: "NYJ", projectedPoints: 9.6 },
+    { id: "t7-bench2", name: "Khalil Shakir", position: "WR", nflTeam: "BUF", projectedPoints: 8.9 },
   ],
   "team-8": [
     { id: "t8-qb1", name: "Caleb Williams", position: "QB", nflTeam: "CHI", projectedPoints: 17.9 },
@@ -173,5 +190,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t8-flex1", name: "Tyler Boyd", position: "WR", nflTeam: "TEN", projectedPoints: 8.8 },
     { id: "t8-k1", name: "Cairo Santos", position: "K", nflTeam: "CHI", projectedPoints: 7.2 },
     { id: "t8-def1", name: "Bears D/ST", position: "DEF", nflTeam: "CHI", projectedPoints: 6.4 },
+    { id: "t8-bench1", name: "Roschon Johnson", position: "RB", nflTeam: "CHI", projectedPoints: 7.4 },
+    { id: "t8-bench2", name: "Cedric Tillman", position: "WR", nflTeam: "CLE", projectedPoints: 7.0 },
   ],
 };
