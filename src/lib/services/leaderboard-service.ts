@@ -11,11 +11,12 @@ import { buildLeaderboard } from "@/lib/state/leaderboard";
 export async function getLeaderboard(
   scope: "week" | "season",
   wallets: FaabWallet[],
-  wagers: Wager[]
+  wagers: Wager[],
+  week: number = mockLeague.currentWeek
 ): Promise<LeaderboardEntry[]> {
   return buildLeaderboard({
     scope,
-    week: mockLeague.currentWeek,
+    week,
     members: mockMembers,
     teams: mockTeams,
     wallets,
