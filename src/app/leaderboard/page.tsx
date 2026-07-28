@@ -6,7 +6,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeaderboardTable } from "@/components/leaderboard/leaderboard-table";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { WeekNav } from "@/components/shared/week-nav";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
+import { getAvailableWeeks } from "@/lib/services/matchup-service";
+import { useWeekParam } from "@/lib/hooks/use-week-param";
 import { currentMemberId } from "@/lib/mock-data/league";
 import { useBetting } from "@/lib/state/betting-provider";
 import type { LeaderboardEntry } from "@/lib/types";
@@ -15,18 +18,30 @@ function LeaderboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scope = (searchParams.get("scope") as "week" | "season") ?? "season";
+  const { week, goToWeek } = useWeekParam("/leaderboard");
   const { allWallets, allWagers } = useBetting();
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
-  const [loadedScope, setLoadedScope] = useState<string | null>(null);
+  const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    getLeaderboard(scope, allWallets, allWagers).then((result) => {
-      setEntries(result);
-      setLoadedScope(scope);
-    });
-  }, [scope, allWallets, allWagers]);
+    getAvailableWeeks().then(setAvailableWeeks);
+  }, []);
 
-  const isLoading = loadedScope !== scope;
+  useEffect(() => {
+    getLeaderboard(scope, allWallets, allWagers, week).then((result) => {
+      setEntries(result);
+      setLoadedKey(`${scope}-${week}`);
+    });
+  }, [scope, week, allWallets, allWagers]);
+
+  const isLoading = loadedKey !== `${scope}-${week}`;
+
+  function goToScope(nextScope: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("scope", nextScope);
+    router.push(`/leaderboard?${params.toString()}`);
+  }
 
   return (
     <div>
@@ -34,16 +49,17 @@ function LeaderboardContent() {
         title="Leaderboard"
         description="Ranked by betting performance, not wager volume."
       />
-      <Tabs
-        value={scope}
-        onValueChange={(v) => router.push(`/leaderboard?scope=${v}`)}
-        className="mb-4"
-      >
-        <TabsList>
-          <TabsTrigger value="week">This Week</TabsTrigger>
-          <TabsTrigger value="season">Season</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Tabs value={scope} onValueChange={goToScope}>
+          <TabsList>
+            <TabsTrigger value="week">This Week</TabsTrigger>
+            <TabsTrigger value="season">Season</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {scope === "week" ? (
+          <WeekNav week={week} availableWeeks={availableWeeks} onNavigate={goToWeek} />
+        ) : null}
+      </div>
 
       {isLoading || entries === null ? (
         <LoadingSkeleton variant="table" count={8} />

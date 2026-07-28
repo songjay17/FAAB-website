@@ -21,7 +21,8 @@ Wager settlement (won/lost/refunded, FAAB payouts, weekly & season P&L) shipped 
 - [x] Real leaderboard/stat wiring — connect the Leaderboard page to live wallet/wager state instead of static mock rows (shipped in [#9](https://github.com/songjay17/FAAB-website/pull/9))
 - [ ] **[IMPORTANT] Reconcile with real Sleeper FAAB spend** — waiver claims made in the actual Sleeper app change a member's true remaining FAAB independently of bets placed here, and this app's balance will silently drift out of sync unless something reconciles the two. Needs: a sync mechanism (poll/webhook/manual) pulling each member's Sleeper waiver spend, re-deriving `availableFaab` from it (`sleeperRemainingFaab - reservedFaab`), and a decision on whether waiver spend should affect leaderboard P/L (leaning no — it should shrink balance like a settled loss without counting as a wager outcome). Also needs a plan for claims landing mid-week while wagers are open.
 - [x] Manual void/refund controls — commissioner override for an individual wager, independent of automatic settlement (shipped in [#11](https://github.com/songjay17/FAAB-website/pull/11))
-- [ ] Week lifecycle and historical navigation — moving between weeks, opening/closing markets, browsing past weeks' results
+- [x] Browsing past weeks' results — Leaderboard's "This Week" view and My Bets now support navigating to any past week with seeded data, not just the current one (shipped in [#12](https://github.com/songjay17/FAAB-website/pull/12))
+- [ ] Market open/close controls — the Commissioner "Open or close a market" card is still a UI-only stub
 - [ ] Persistent local mock state and reset controls — firm up how demo state is saved/reset as more features touch it
 - [ ] Sleeper read-only integration — pull real league/roster data instead of hand-authored mocks
 

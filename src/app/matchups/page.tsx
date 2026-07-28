@@ -1,15 +1,15 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
 import { MatchupCard } from "@/components/matchups/matchup-card";
 import { BetSlip, type BetSlipSelection } from "@/components/betting/bet-slip";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
+import { WeekNav } from "@/components/shared/week-nav";
 import { mockLeague, mockMembers } from "@/lib/mock-data";
+import { useWeekParam } from "@/lib/hooks/use-week-param";
 import { getMatchupsByWeek, getAvailableWeeks } from "@/lib/services/matchup-service";
 import { getMarketsForWeek } from "@/lib/services/market-service";
 import { getTeams } from "@/lib/services/team-service";
@@ -17,11 +17,7 @@ import { mockLineups } from "@/lib/mock-data/matchups";
 import type { BettingMarket, FantasyTeam, WeeklyMatchup } from "@/lib/types";
 
 function MatchupsPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const weekParam = searchParams.get("week");
-  const parsedWeek = weekParam === null ? NaN : Number(weekParam);
-  const week = Number.isInteger(parsedWeek) ? parsedWeek : mockLeague.currentWeek;
+  const { week, goToWeek } = useWeekParam("/matchups");
 
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [markets, setMarkets] = useState<BettingMarket[]>([]);
@@ -48,10 +44,6 @@ function MatchupsPageContent() {
     })();
   }, [week]);
 
-  function goToWeek(next: number) {
-    router.push(`/matchups?week=${next}`);
-  }
-
   function handlePlaceBet(matchup: WeeklyMatchup, teamId: string, opponentTeamId: string) {
     const market = markets.find((m) => m.matchupId === matchup.id);
     const team = teams.find((t) => t.id === teamId);
@@ -75,29 +67,7 @@ function MatchupsPageContent() {
       <PageHeader
         title="Matchups"
         description={mockLeague.scoringFormat}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={!weeks.includes(week - 1)}
-              onClick={() => goToWeek(week - 1)}
-              aria-label="Previous week"
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <span className="min-w-20 text-center text-sm font-semibold">Week {week}</span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              disabled={!weeks.includes(week + 1)}
-              onClick={() => goToWeek(week + 1)}
-              aria-label="Next week"
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        }
+        actions={<WeekNav week={week} availableWeeks={weeks} onNavigate={goToWeek} />}
       />
 
       {loading ? (
