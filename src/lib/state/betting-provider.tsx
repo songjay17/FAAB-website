@@ -88,6 +88,8 @@ type BettingContextValue = {
   settleWeek: (week: number) => SettlementResult;
   /** Manually refunds a single open wager league-wide, independent of weekly settlement. */
   voidWager: (wagerId: string, reason: string) => { ok: true } | { ok: false; error: string };
+  /** Lets the signed-in member cancel their own open wager for a full refund, before its matchup locks. */
+  cancelWager: (wagerId: string) => { ok: true } | { ok: false; error: string };
   /** Commissioner override: manually open/lock a matchup's market, independent of settlement. */
   setMarketStatus: (matchupId: string, status: MarketStatus) => void;
 };
@@ -279,6 +281,33 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }
 
+  function cancelWager(wagerId: string): { ok: true } | { ok: false; error: string } {
+    const wager = state.wagers.find((w) => w.id === wagerId);
+    if (!wager || wager.memberId !== currentMemberId) {
+      return { ok: false, error: "Wager not found." };
+    }
+    if (wager.status !== "open") {
+      return { ok: false, error: "Only open wagers can be cancelled." };
+    }
+    const market = state.markets.find((m) => m.matchupId === wager.matchupId);
+    if (market && market.status !== "open") {
+      return { ok: false, error: "This matchup has already locked — ask the commissioner to void it instead." };
+    }
+
+    const { updatedWallet, updatedWager } = voidWagerPure(wallet, wager);
+
+    dispatch({
+      type: "HYDRATE",
+      payload: {
+        ...state,
+        wallets: state.wallets.map((w) => (w.memberId === currentMemberId ? updatedWallet : w)),
+        wagers: state.wagers.map((w) => (w.id === wagerId ? updatedWager : w)),
+      },
+    });
+
+    return { ok: true };
+  }
+
   function setMarketStatus(matchupId: string, status: MarketStatus) {
     dispatch({
       type: "HYDRATE",
@@ -302,6 +331,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         resetDemoData,
         settleWeek,
         voidWager,
+        cancelWager,
         setMarketStatus,
       }}
     >

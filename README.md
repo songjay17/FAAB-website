@@ -23,6 +23,7 @@ Wager settlement (won/lost/refunded, FAAB payouts, weekly & season P&L) shipped 
 - [x] Manual void/refund controls — commissioner override for an individual wager, independent of automatic settlement (shipped in [#11](https://github.com/songjay17/FAAB-website/pull/11))
 - [x] Browsing past weeks' results — Leaderboard's "This Week" view and My Bets now support navigating to any past week with seeded data, not just the current one (shipped in [#12](https://github.com/songjay17/FAAB-website/pull/12))
 - [x] Market open/close controls — commissioner can now lock/unlock an individual matchup's betting market; markets moved from static mock data into live `BettingProvider` state so the toggle takes effect immediately everywhere `market.status` gates bet placement (shipped in [#13](https://github.com/songjay17/FAAB-website/pull/13))
+- [x] Self-serve bet cancellation and wager detail — My Bets/Dashboard wager cards are now clickable and expand in place to show reference #, placed time, and lock time; members can cancel their own open, not-yet-locked bet for a full refund (separate from the commissioner's void, which works on any open bet and requires a logged reason)
 - [ ] Persistent local mock state and reset controls — firm up how demo state is saved/reset as more features touch it
 - [ ] Sleeper read-only integration — pull real league/roster data instead of hand-authored mocks
 
