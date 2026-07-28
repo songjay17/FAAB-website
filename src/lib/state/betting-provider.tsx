@@ -8,10 +8,11 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { BettingMarket, FaabWallet, Wager } from "@/lib/types";
+import type { BettingMarket, FaabWallet, MarketStatus, Wager } from "@/lib/types";
 import { calculatePayout, calculateProfit } from "@/lib/odds";
 import { currentMemberId } from "@/lib/mock-data/league";
 import { mockMatchups } from "@/lib/mock-data/matchups";
+import { mockMarkets } from "@/lib/mock-data/markets";
 import { mockWallets } from "@/lib/mock-data/wallets";
 import { mockWagers } from "@/lib/mock-data/wagers";
 import { settleWagersForWeek, voidWager as voidWagerPure, type SettlementResult } from "./settlement";
@@ -21,10 +22,14 @@ const STORAGE_KEY = "jhulads:betting-state";
 // Holds every member's wallet and wager history, not just the signed-in
 // member's — the leaderboard needs the whole league to rank members against
 // each other. `wallet`/`wagers` on the context stay scoped to the current
-// member (see below) so every existing consumer is unaffected.
+// member (see below) so every existing consumer is unaffected. `markets`
+// lives here too (rather than staying static mock data) so a commissioner
+// can lock/unlock a market and have every page that gates on
+// `market.status` reflect it immediately.
 type BettingState = {
   wallets: FaabWallet[];
   wagers: Wager[];
+  markets: BettingMarket[];
 };
 
 type BettingAction = { type: "HYDRATE"; payload: BettingState };
@@ -33,6 +38,7 @@ function seedState(): BettingState {
   return {
     wallets: mockWallets,
     wagers: mockWagers,
+    markets: mockMarkets,
   };
 }
 
@@ -43,6 +49,7 @@ function isValidBettingState(value: unknown): value is BettingState {
   return (
     Array.isArray(candidate.wallets) &&
     Array.isArray(candidate.wagers) &&
+    Array.isArray(candidate.markets) &&
     candidate.wallets.some((w) => w.memberId === currentMemberId)
   );
 }
@@ -67,6 +74,7 @@ type BettingContextValue = {
   wagers: Wager[];
   allWallets: FaabWallet[];
   allWagers: Wager[];
+  allMarkets: BettingMarket[];
   openWagerForMatchup: (matchupId: string) => Wager | undefined;
   placeWager: (
     market: BettingMarket,
@@ -80,6 +88,8 @@ type BettingContextValue = {
   settleWeek: (week: number) => SettlementResult;
   /** Manually refunds a single open wager league-wide, independent of weekly settlement. */
   voidWager: (wagerId: string, reason: string) => { ok: true } | { ok: false; error: string };
+  /** Commissioner override: manually open/lock a matchup's market, independent of settlement. */
+  setMarketStatus: (matchupId: string, status: MarketStatus) => void;
 };
 
 const BettingContext = createContext<BettingContextValue | null>(null);
@@ -153,6 +163,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     dispatch({
       type: "HYDRATE",
       payload: {
+        ...state,
         wallets: state.wallets.map((w) =>
           w.memberId === currentMemberId
             ? {
@@ -228,7 +239,10 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     }
 
     if (anyUpdated) {
-      dispatch({ type: "HYDRATE", payload: { wallets: combinedWallets, wagers: combinedWagers } });
+      dispatch({
+        type: "HYDRATE",
+        payload: { ...state, wallets: combinedWallets, wagers: combinedWagers },
+      });
     }
 
     return aggregate;
@@ -256,12 +270,23 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     dispatch({
       type: "HYDRATE",
       payload: {
+        ...state,
         wallets: state.wallets.map((w) => (w.memberId === wager.memberId ? updatedWallet : w)),
         wagers: state.wagers.map((w) => (w.id === wagerId ? updatedWager : w)),
       },
     });
 
     return { ok: true };
+  }
+
+  function setMarketStatus(matchupId: string, status: MarketStatus) {
+    dispatch({
+      type: "HYDRATE",
+      payload: {
+        ...state,
+        markets: state.markets.map((m) => (m.matchupId === matchupId ? { ...m, status } : m)),
+      },
+    });
   }
 
   return (
@@ -271,11 +296,13 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         wagers,
         allWallets: state.wallets,
         allWagers: state.wagers,
+        allMarkets: state.markets,
         openWagerForMatchup,
         placeWager,
         resetDemoData,
         settleWeek,
         voidWager,
+        setMarketStatus,
       }}
     >
       {children}

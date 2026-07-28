@@ -11,16 +11,16 @@ import { WeekNav } from "@/components/shared/week-nav";
 import { mockLeague, mockMembers } from "@/lib/mock-data";
 import { useWeekParam } from "@/lib/hooks/use-week-param";
 import { getMatchupsByWeek, getAvailableWeeks } from "@/lib/services/matchup-service";
-import { getMarketsForWeek } from "@/lib/services/market-service";
 import { getTeams } from "@/lib/services/team-service";
+import { useBetting } from "@/lib/state/betting-provider";
 import { mockLineups } from "@/lib/mock-data/matchups";
-import type { BettingMarket, FantasyTeam, WeeklyMatchup } from "@/lib/types";
+import type { FantasyTeam, WeeklyMatchup } from "@/lib/types";
 
 function MatchupsPageContent() {
   const { week, goToWeek } = useWeekParam("/matchups");
+  const { allMarkets } = useBetting();
 
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
-  const [markets, setMarkets] = useState<BettingMarket[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
   const [weeks, setWeeks] = useState<number[]>([]);
   const [loadedWeek, setLoadedWeek] = useState<number | null>(null);
@@ -35,14 +35,14 @@ function MatchupsPageContent() {
         getTeams(),
         getAvailableWeeks(),
       ]);
-      const weekMarkets = await getMarketsForWeek(weekMatchups.map((m) => m.id));
       setMatchups(weekMatchups);
       setTeams(teamList);
-      setMarkets(weekMarkets);
       setWeeks(availableWeeks);
       setLoadedWeek(week);
     })();
   }, [week]);
+
+  const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
 
   function handlePlaceBet(matchup: WeeklyMatchup, teamId: string, opponentTeamId: string) {
     const market = markets.find((m) => m.matchupId === matchup.id);

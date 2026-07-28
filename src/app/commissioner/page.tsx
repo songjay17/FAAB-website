@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { CommissionerActionCard } from "@/components/commissioner/commissioner-action-card";
 import { SettleWeekCard } from "@/components/commissioner/settle-week-card";
 import { VoidWagerCard } from "@/components/commissioner/void-wager-card";
+import { ManageMarketsCard } from "@/components/commissioner/manage-markets-card";
 import { mockLeague } from "@/lib/mock-data";
 import { useBetting } from "@/lib/state/betting-provider";
 
@@ -109,12 +110,7 @@ export default function CommissionerPage() {
           description="See every open and settled bet across the league."
           actionLabel="View Wagers"
         />
-        <CommissionerActionCard
-          icon={Lock}
-          title="Open or close a market"
-          description="Manually control whether a specific matchup accepts bets."
-          actionLabel="Manage Markets"
-        />
+        <ManageMarketsCard icon={Lock} />
         <SettleWeekCard icon={Trophy} />
       </div>
 

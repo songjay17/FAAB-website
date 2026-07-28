@@ -15,21 +15,14 @@ import { useBetting } from "@/lib/state/betting-provider";
 import { formatMoneyline } from "@/lib/odds";
 import { mockLeague } from "@/lib/mock-data";
 import { getMatchupsByWeek } from "@/lib/services/matchup-service";
-import { getMarketsForWeek } from "@/lib/services/market-service";
 import { getTeams } from "@/lib/services/team-service";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
 import { currentMemberId } from "@/lib/mock-data/league";
-import type {
-  BettingMarket,
-  FantasyTeam,
-  LeaderboardEntry,
-  WeeklyMatchup,
-} from "@/lib/types";
+import type { FantasyTeam, LeaderboardEntry, WeeklyMatchup } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { wallet, wagers, allWallets, allWagers } = useBetting();
+  const { wallet, wagers, allWallets, allWagers, allMarkets } = useBetting();
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
-  const [markets, setMarkets] = useState<BettingMarket[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
@@ -39,15 +32,14 @@ export default function DashboardPage() {
         getMatchupsByWeek(mockLeague.currentWeek),
         getTeams(),
       ]);
-      const weekMarkets = await getMarketsForWeek(weekMatchups.map((m) => m.id));
       const board = await getLeaderboard("season", allWallets, allWagers);
       setMatchups(weekMatchups);
-      setMarkets(weekMarkets);
       setTeams(teamList);
       setLeaderboard(board.slice(0, 5));
     })();
   }, [allWallets, allWagers]);
 
+  const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const featured = matchups[0];
   const featuredMarket = featured ? markets.find((m) => m.matchupId === featured.id) : undefined;

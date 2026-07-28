@@ -16,14 +16,8 @@ import { useBetting } from "@/lib/state/betting-provider";
 import { formatFaab, formatPercent, impliedProbability } from "@/lib/odds";
 import { mockMembers } from "@/lib/mock-data";
 import { getMatchupById, getProjectedLineup } from "@/lib/services/matchup-service";
-import { getMarketForMatchup } from "@/lib/services/market-service";
 import { getTeamById } from "@/lib/services/team-service";
-import type {
-  BettingMarket,
-  FantasyTeam,
-  ProjectedLineup,
-  WeeklyMatchup,
-} from "@/lib/types";
+import type { FantasyTeam, ProjectedLineup, WeeklyMatchup } from "@/lib/types";
 
 function formatLockTime(iso: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -35,10 +29,9 @@ function formatLockTime(iso: string) {
 
 export default function MatchupDetailPage() {
   const { matchupId } = useParams<{ matchupId: string }>();
-  const { openWagerForMatchup } = useBetting();
+  const { openWagerForMatchup, allMarkets } = useBetting();
 
   const [matchup, setMatchup] = useState<WeeklyMatchup | null | undefined>(undefined);
-  const [market, setMarket] = useState<BettingMarket | undefined>(undefined);
   const [homeTeam, setHomeTeam] = useState<FantasyTeam | undefined>(undefined);
   const [awayTeam, setAwayTeam] = useState<FantasyTeam | undefined>(undefined);
   const [homeLineup, setHomeLineup] = useState<ProjectedLineup | undefined>(undefined);
@@ -55,20 +48,20 @@ export default function MatchupDetailPage() {
         return;
       }
       setMatchup(found);
-      const [m, home, away, hLineup, aLineup] = await Promise.all([
-        getMarketForMatchup(found.id),
+      const [home, away, hLineup, aLineup] = await Promise.all([
         getTeamById(found.homeTeamId),
         getTeamById(found.awayTeamId),
         getProjectedLineup(found.homeTeamId, found.id),
         getProjectedLineup(found.awayTeamId, found.id),
       ]);
-      setMarket(m);
       setHomeTeam(home);
       setAwayTeam(away);
       setHomeLineup(hLineup);
       setAwayLineup(aLineup);
     })();
   }, [matchupId]);
+
+  const market = matchup ? allMarkets.find((m) => m.matchupId === matchup.id) : undefined;
 
   if (matchup === null) {
     return (
