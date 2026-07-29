@@ -4,6 +4,9 @@
 // `count` field in the response — no pagination param exists. `scoring` in
 // the response always echoes "STD" even when a scoring query param is
 // passed, so `points_ppr` (not `scoring`/`points`) is the field to trust.
+// `players` can be `null` with `count: "0"` on an otherwise-200 response —
+// verified live (a week/position combo with no cached data) — treat as an
+// empty result, not a hard failure.
 export type FantasyProsPlayer = {
   fpid: number;
   name: string;
@@ -21,7 +24,7 @@ export type FantasyProsProjectionsResponse = {
   week: string;
   count: string;
   positions: string;
-  players: FantasyProsPlayer[];
+  players: FantasyProsPlayer[] | null;
   limit?: number;
   tier?: string;
 };

@@ -22,7 +22,7 @@ import type { FantasyTeam, LeaderboardEntry, WeeklyMatchup } from "@/lib/types";
 
 export default function DashboardPage() {
   const { wallet, wagers, allWallets, allWagers, allMarkets } = useBetting();
-  const { league, members, teams: sleeperTeams } = useSleeperData();
+  const { league, members, teams: sleeperTeams, matchupsByWeek } = useSleeperData();
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -30,7 +30,7 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       const [weekMatchups, teamList] = await Promise.all([
-        getMatchupsByWeek(league.currentWeek),
+        getMatchupsByWeek(matchupsByWeek, league.currentWeek),
         getTeams(sleeperTeams),
       ]);
       const board = await getLeaderboard(
@@ -45,7 +45,7 @@ export default function DashboardPage() {
       setTeams(teamList);
       setLeaderboard(board.slice(0, 5));
     })();
-  }, [allWallets, allWagers, league, members, sleeperTeams]);
+  }, [allWallets, allWagers, league, members, sleeperTeams, matchupsByWeek]);
 
   const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
   const teamById = (id: string) => teams.find((t) => t.id === id);

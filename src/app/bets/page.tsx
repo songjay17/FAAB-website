@@ -31,7 +31,7 @@ const tabs: Array<{ value: string; label: string; status?: WagerStatus }> = [
 
 function MyBetsContent() {
   const { wagers } = useBetting();
-  const { teams } = useSleeperData();
+  const { teams, matchupsByWeek } = useSleeperData();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "open";
@@ -39,8 +39,8 @@ function MyBetsContent() {
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
 
   useEffect(() => {
-    getAvailableWeeks().then(setAvailableWeeks);
-  }, []);
+    getAvailableWeeks(matchupsByWeek).then(setAvailableWeeks);
+  }, [matchupsByWeek]);
 
   function goToWeekFilter(value: string | null) {
     const params = new URLSearchParams(searchParams.toString());

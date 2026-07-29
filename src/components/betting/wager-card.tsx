@@ -17,7 +17,7 @@ import {
 import { WagerStatusBadge } from "./wager-status-badge";
 import { formatFaab, formatMoneyline } from "@/lib/odds";
 import { useBetting, SELF_CANCEL_WINDOW_MS } from "@/lib/state/betting-provider";
-import { mockMatchups } from "@/lib/mock-data/matchups";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import type { Wager } from "@/lib/types";
 
 function formatTimestamp(iso: string) {
@@ -38,6 +38,7 @@ export function WagerCard({
   opponentName: string;
 }) {
   const { cancelWager, allMarkets } = useBetting();
+  const { matchupsByWeek } = useSleeperData();
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [withinCancelWindow, setWithinCancelWindow] = useState(false);
@@ -56,7 +57,7 @@ export function WagerCard({
   const payoutValue =
     wager.status === "open" ? wager.potentialPayout : (wager.finalPayout ?? 0);
 
-  const matchup = mockMatchups.find((m) => m.id === wager.matchupId);
+  const matchup = (matchupsByWeek.get(wager.week) ?? []).find((m) => m.id === wager.matchupId);
   const market = allMarkets.find((m) => m.matchupId === wager.matchupId);
   const isLocked = market ? market.status !== "open" : false;
   const canCancel = wager.status === "open" && withinCancelWindow;
