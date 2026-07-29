@@ -8,17 +8,18 @@ import { BetSlip, type BetSlipSelection } from "@/components/betting/bet-slip";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { WeekNav } from "@/components/shared/week-nav";
-import { mockLeague, mockMembers } from "@/lib/mock-data";
 import { useWeekParam } from "@/lib/hooks/use-week-param";
 import { getMatchupsByWeek, getAvailableWeeks } from "@/lib/services/matchup-service";
 import { getTeams } from "@/lib/services/team-service";
 import { useBetting } from "@/lib/state/betting-provider";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { mockLineups } from "@/lib/mock-data/matchups";
 import type { FantasyTeam, WeeklyMatchup } from "@/lib/types";
 
 function MatchupsPageContent() {
   const { week, goToWeek } = useWeekParam("/matchups");
   const { allMarkets } = useBetting();
+  const { league, members, teams: sleeperTeams } = useSleeperData();
 
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
@@ -32,7 +33,7 @@ function MatchupsPageContent() {
     (async () => {
       const [weekMatchups, teamList, availableWeeks] = await Promise.all([
         getMatchupsByWeek(week),
-        getTeams(),
+        getTeams(sleeperTeams),
         getAvailableWeeks(),
       ]);
       setMatchups(weekMatchups);
@@ -40,7 +41,7 @@ function MatchupsPageContent() {
       setWeeks(availableWeeks);
       setLoadedWeek(week);
     })();
-  }, [week]);
+  }, [week, sleeperTeams]);
 
   const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
 
@@ -57,7 +58,7 @@ function MatchupsPageContent() {
 
   const teamById = (id: string) => teams.find((t) => t.id === id)!;
   const ownerByTeamId = (teamId: string) =>
-    mockMembers.find((m) => m.teamId === teamId) ?? mockMembers[0];
+    members.find((m) => m.teamId === teamId) ?? members[0];
   const projectedFor = (teamId: string, matchupId: string) =>
     mockLineups.find((l) => l.teamId === teamId && l.matchupId === matchupId)
       ?.totalProjectedPoints ?? 0;
@@ -66,7 +67,7 @@ function MatchupsPageContent() {
     <div>
       <PageHeader
         title="Matchups"
-        description={mockLeague.scoringFormat}
+        description={league.scoringFormat}
         actions={<WeekNav week={week} availableWeeks={weeks} onNavigate={goToWeek} />}
       />
 

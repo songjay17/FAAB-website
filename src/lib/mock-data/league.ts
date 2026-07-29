@@ -10,15 +10,12 @@ export const mockLeague: League = {
 };
 
 export const mockMembers: LeagueMember[] = [
-  { id: "member-1", displayName: "Justin", teamId: "team-1", isCommissioner: true },
-  { id: "member-2", displayName: "Connor", teamId: "team-2" },
-  { id: "member-3", displayName: "Dave", teamId: "team-3" },
-  { id: "member-4", displayName: "Ravi", teamId: "team-4" },
-  { id: "member-5", displayName: "Mike", teamId: "team-5" },
-  { id: "member-6", displayName: "Alex", teamId: "team-6" },
-  { id: "member-7", displayName: "Sam", teamId: "team-7" },
-  { id: "member-8", displayName: "Tyler", teamId: "team-8" },
+  { id: "975162996680945664", displayName: "Justin", teamId: "roster-1", isCommissioner: true },
+  { id: "984151623574323200", displayName: "Connor", teamId: "roster-2" },
+  { id: "984156047625523200", displayName: "Dave", teamId: "roster-3" },
+  { id: "594590141419405312", displayName: "Ravi", teamId: "roster-4" },
+  { id: "984230356897337344", displayName: "Mike", teamId: "roster-5" },
+  { id: "987034877151293440", displayName: "Alex", teamId: "roster-6" },
+  { id: "990743597525831680", displayName: "Sam", teamId: "roster-7" },
+  { id: "990745711383805952", displayName: "Tyler", teamId: "roster-8" },
 ];
-
-// The signed-in member for this prototype.
-export const currentMemberId = "member-1";

@@ -28,8 +28,8 @@ import { CommissionerActionCard } from "@/components/commissioner/commissioner-a
 import { SettleWeekCard } from "@/components/commissioner/settle-week-card";
 import { VoidWagerCard } from "@/components/commissioner/void-wager-card";
 import { ManageMarketsCard } from "@/components/commissioner/manage-markets-card";
-import { mockLeague } from "@/lib/mock-data";
 import { useBetting } from "@/lib/state/betting-provider";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 
 const seedAuditLog = [
   {
@@ -58,6 +58,7 @@ export default function CommissionerPage() {
   const [betsPaused, setBetsPaused] = useState(false);
   const [liveAuditLog, setLiveAuditLog] = useState<{ id: string; text: string; time: string }[]>([]);
   const { resetDemoData } = useBetting();
+  const { league } = useSleeperData();
   const auditLog = [...liveAuditLog, ...seedAuditLog];
 
   function logVoid(summary: string) {
@@ -80,7 +81,7 @@ export default function CommissionerPage() {
     <div className="space-y-6">
       <PageHeader
         title="Commissioner Tools"
-        description={`Frontend preview only — no changes here affect live data for ${mockLeague.name}.`}
+        description={`Frontend preview only — no changes here affect live data for ${league.name}.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-2">

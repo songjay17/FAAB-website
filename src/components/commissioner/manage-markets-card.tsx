@@ -14,14 +14,17 @@ import {
 } from "@/components/ui/dialog";
 import { MarketStatusBadge } from "@/components/betting/market-status-badge";
 import { useBetting } from "@/lib/state/betting-provider";
-import { mockMatchups, mockTeams } from "@/lib/mock-data";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
+import { mockMatchups } from "@/lib/mock-data";
+import type { FantasyTeam } from "@/lib/types";
 
-function teamName(teamId: string) {
-  return mockTeams.find((t) => t.id === teamId)?.name ?? teamId;
+function teamName(teams: FantasyTeam[], teamId: string) {
+  return teams.find((t) => t.id === teamId)?.name ?? teamId;
 }
 
 export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
   const { allMarkets, setMarketStatus } = useBetting();
+  const { teams } = useSleeperData();
 
   // Only "open" and "locked" are commissioner-togglable here — "paused"
   // reads as a league-wide state (see the separate Pause Betting card) and
@@ -76,7 +79,7 @@ export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
                   >
                     <div>
                       <p className="font-medium text-foreground">
-                        {teamName(matchup!.homeTeamId)} vs {teamName(matchup!.awayTeamId)}{" "}
+                        {teamName(teams, matchup!.homeTeamId)} vs {teamName(teams, matchup!.awayTeamId)}{" "}
                         <span className="text-xs font-normal text-muted-foreground">
                           Week {matchup!.week}
                         </span>

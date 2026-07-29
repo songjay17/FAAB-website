@@ -1,14 +1,16 @@
 import type { League, LeagueMember } from "@/lib/types";
-import { mockLeague, mockMembers } from "@/lib/mock-data";
 
-export async function getLeague(): Promise<League> {
-  return mockLeague;
+export async function getLeague(league: League): Promise<League> {
+  return league;
 }
 
-export async function getLeagueMembers(): Promise<LeagueMember[]> {
-  return mockMembers;
+export async function getLeagueMembers(members: LeagueMember[]): Promise<LeagueMember[]> {
+  return members;
 }
 
-export async function getMemberById(memberId: string): Promise<LeagueMember | undefined> {
-  return mockMembers.find((m) => m.id === memberId);
+export async function getMemberById(
+  members: LeagueMember[],
+  memberId: string
+): Promise<LeagueMember | undefined> {
+  return members.find((m) => m.id === memberId);
 }

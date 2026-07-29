@@ -2,8 +2,8 @@ import type { FantasyPlayer, FantasyTeam } from "@/lib/types";
 
 export const mockTeams: FantasyTeam[] = [
   {
-    id: "team-1",
-    ownerMemberId: "member-1",
+    id: "roster-1",
+    ownerMemberId: "975162996680945664",
     name: "Hurts So Good",
     logoEmoji: "🦅",
     record: { wins: 5, losses: 1, ties: 0 },
@@ -12,8 +12,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["W", "W", "L", "W", "W"],
   },
   {
-    id: "team-2",
-    ownerMemberId: "member-2",
+    id: "roster-2",
+    ownerMemberId: "984151623574323200",
     name: "Bijan Mustard",
     logoEmoji: "🌭",
     record: { wins: 4, losses: 2, ties: 0 },
@@ -22,8 +22,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["L", "W", "W", "L", "W"],
   },
   {
-    id: "team-3",
-    ownerMemberId: "member-3",
+    id: "roster-3",
+    ownerMemberId: "984156047625523200",
     name: "Puka Shells",
     logoEmoji: "🐚",
     record: { wins: 4, losses: 2, ties: 0 },
@@ -32,8 +32,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["W", "W", "W", "L", "L"],
   },
   {
-    id: "team-4",
-    ownerMemberId: "member-4",
+    id: "roster-4",
+    ownerMemberId: "594590141419405312",
     name: "CeeDeez Nuts",
     logoEmoji: "🥜",
     record: { wins: 3, losses: 3, ties: 0 },
@@ -42,8 +42,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["L", "L", "W", "W", "L"],
   },
   {
-    id: "team-5",
-    ownerMemberId: "member-5",
+    id: "roster-5",
+    ownerMemberId: "984230356897337344",
     name: "The Last Air Bender",
     logoEmoji: "🌪️",
     record: { wins: 3, losses: 3, ties: 0 },
@@ -52,8 +52,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["W", "L", "L", "W", "L"],
   },
   {
-    id: "team-6",
-    ownerMemberId: "member-6",
+    id: "roster-6",
+    ownerMemberId: "987034877151293440",
     name: "Gibbs Me Liberty",
     logoEmoji: "🗽",
     record: { wins: 2, losses: 4, ties: 0 },
@@ -62,8 +62,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["L", "L", "W", "L", "L"],
   },
   {
-    id: "team-7",
-    ownerMemberId: "member-7",
+    id: "roster-7",
+    ownerMemberId: "990743597525831680",
     name: "Diggs My Grave",
     logoEmoji: "⛏️",
     record: { wins: 2, losses: 4, ties: 0 },
@@ -72,8 +72,8 @@ export const mockTeams: FantasyTeam[] = [
     recentForm: ["W", "L", "L", "L", "W"],
   },
   {
-    id: "team-8",
-    ownerMemberId: "member-8",
+    id: "roster-8",
+    ownerMemberId: "990745711383805952",
     name: "Zero Dark Thirty",
     logoEmoji: "🌑",
     record: { wins: 1, losses: 5, ties: 0 },
@@ -89,7 +89,7 @@ export const mockTeams: FantasyTeam[] = [
 // actually started — so benching a stud right before betting opens can't
 // manufacture worse odds than the roster actually supports.
 export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
-  "team-1": [
+  "roster-1": [
     { id: "t1-qb1", name: "Jalen Hurts", position: "QB", nflTeam: "PHI", projectedPoints: 24.1 },
     { id: "t1-rb1", name: "Saquon Barkley", position: "RB", nflTeam: "PHI", projectedPoints: 21.3 },
     { id: "t1-rb2", name: "James Cook", position: "RB", nflTeam: "BUF", projectedPoints: 16.8 },
@@ -102,7 +102,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t1-bench1", name: "Kenneth Walker III", position: "RB", nflTeam: "SEA", projectedPoints: 15.1 },
     { id: "t1-bench2", name: "Jordan Addison", position: "WR", nflTeam: "MIN", projectedPoints: 13.7 },
   ],
-  "team-2": [
+  "roster-2": [
     { id: "t2-qb1", name: "Jayden Daniels", position: "QB", nflTeam: "WAS", projectedPoints: 22.6 },
     { id: "t2-rb1", name: "Bijan Robinson", position: "RB", nflTeam: "ATL", projectedPoints: 19.9 },
     { id: "t2-rb2", name: "Chuba Hubbard", position: "RB", nflTeam: "CAR", projectedPoints: 14.1 },
@@ -115,7 +115,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t2-bench1", name: "Tyrone Tracy Jr.", position: "RB", nflTeam: "NYG", projectedPoints: 10.8 },
     { id: "t2-bench2", name: "Rashid Shaheed", position: "WR", nflTeam: "NO", projectedPoints: 10.1 },
   ],
-  "team-3": [
+  "roster-3": [
     { id: "t3-qb1", name: "C.J. Stroud", position: "QB", nflTeam: "HOU", projectedPoints: 21.8 },
     { id: "t3-rb1", name: "Joe Mixon", position: "RB", nflTeam: "HOU", projectedPoints: 15.9 },
     { id: "t3-rb2", name: "Rachaad White", position: "RB", nflTeam: "TB", projectedPoints: 13.4 },
@@ -128,7 +128,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t3-bench1", name: "Jaylen Warren", position: "RB", nflTeam: "PIT", projectedPoints: 11.4 },
     { id: "t3-bench2", name: "Jayden Higgins", position: "WR", nflTeam: "HOU", projectedPoints: 9.5 },
   ],
-  "team-4": [
+  "roster-4": [
     { id: "t4-qb1", name: "Justin Herbert", position: "QB", nflTeam: "LAC", projectedPoints: 20.9 },
     { id: "t4-rb1", name: "J.K. Dobbins", position: "RB", nflTeam: "LAC", projectedPoints: 14.7 },
     { id: "t4-rb2", name: "Tony Pollard", position: "RB", nflTeam: "TEN", projectedPoints: 13.1 },
@@ -141,7 +141,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t4-bench1", name: "Jaylen Warren", position: "RB", nflTeam: "PIT", projectedPoints: 11.9 },
     { id: "t4-bench2", name: "Jerry Jeudy", position: "WR", nflTeam: "CLE", projectedPoints: 10.3 },
   ],
-  "team-5": [
+  "roster-5": [
     { id: "t5-qb1", name: "Baker Mayfield", position: "QB", nflTeam: "TB", projectedPoints: 19.7 },
     { id: "t5-rb1", name: "Bucky Irving", position: "RB", nflTeam: "TB", projectedPoints: 16.2 },
     { id: "t5-rb2", name: "Javonte Williams", position: "RB", nflTeam: "DAL", projectedPoints: 12.6 },
@@ -154,7 +154,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t5-bench1", name: "Rachaad White", position: "RB", nflTeam: "TB", projectedPoints: 10.7 },
     { id: "t5-bench2", name: "Xavier Legette", position: "WR", nflTeam: "CAR", projectedPoints: 9.2 },
   ],
-  "team-6": [
+  "roster-6": [
     { id: "t6-qb1", name: "Jared Goff", position: "QB", nflTeam: "DET", projectedPoints: 19.3 },
     { id: "t6-rb1", name: "Jahmyr Gibbs", position: "RB", nflTeam: "DET", projectedPoints: 20.5 },
     { id: "t6-rb2", name: "David Montgomery", position: "RB", nflTeam: "DET", projectedPoints: 12.9 },
@@ -167,7 +167,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t6-bench1", name: "Tyjae Spears", position: "RB", nflTeam: "TEN", projectedPoints: 10.2 },
     { id: "t6-bench2", name: "Wan'Dale Robinson", position: "WR", nflTeam: "NYG", projectedPoints: 9.3 },
   ],
-  "team-7": [
+  "roster-7": [
     { id: "t7-qb1", name: "Bo Nix", position: "QB", nflTeam: "DEN", projectedPoints: 18.6 },
     { id: "t7-rb1", name: "Kyren Williams", position: "RB", nflTeam: "LAR", projectedPoints: 15.4 },
     { id: "t7-rb2", name: "Najee Harris", position: "RB", nflTeam: "PIT", projectedPoints: 12.1 },
@@ -180,7 +180,7 @@ export const mockPlayersByTeam: Record<string, FantasyPlayer[]> = {
     { id: "t7-bench1", name: "Braelon Allen", position: "RB", nflTeam: "NYJ", projectedPoints: 9.6 },
     { id: "t7-bench2", name: "Khalil Shakir", position: "WR", nflTeam: "BUF", projectedPoints: 8.9 },
   ],
-  "team-8": [
+  "roster-8": [
     { id: "t8-qb1", name: "Caleb Williams", position: "QB", nflTeam: "CHI", projectedPoints: 17.9 },
     { id: "t8-rb1", name: "D'Andre Swift", position: "RB", nflTeam: "CHI", projectedPoints: 12.8 },
     { id: "t8-rb2", name: "Zack Moss", position: "RB", nflTeam: "CIN", projectedPoints: 10.9 },

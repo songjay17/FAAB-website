@@ -12,16 +12,17 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { OddsButton } from "@/components/betting/odds-button";
 import { MarketStatusBadge } from "@/components/betting/market-status-badge";
 import { useBetting } from "@/lib/state/betting-provider";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { formatMoneyline } from "@/lib/odds";
-import { mockLeague } from "@/lib/mock-data";
 import { getMatchupsByWeek } from "@/lib/services/matchup-service";
 import { getTeams } from "@/lib/services/team-service";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
-import { currentMemberId } from "@/lib/mock-data/league";
+import { DEMO_CURRENT_USER_ID } from "@/lib/sleeper/config";
 import type { FantasyTeam, LeaderboardEntry, WeeklyMatchup } from "@/lib/types";
 
 export default function DashboardPage() {
   const { wallet, wagers, allWallets, allWagers, allMarkets } = useBetting();
+  const { league, members, teams: sleeperTeams } = useSleeperData();
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -29,15 +30,22 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       const [weekMatchups, teamList] = await Promise.all([
-        getMatchupsByWeek(mockLeague.currentWeek),
-        getTeams(),
+        getMatchupsByWeek(league.currentWeek),
+        getTeams(sleeperTeams),
       ]);
-      const board = await getLeaderboard("season", allWallets, allWagers);
+      const board = await getLeaderboard(
+        "season",
+        allWallets,
+        allWagers,
+        members,
+        sleeperTeams,
+        league.currentWeek
+      );
       setMatchups(weekMatchups);
       setTeams(teamList);
       setLeaderboard(board.slice(0, 5));
     })();
-  }, [allWallets, allWagers]);
+  }, [allWallets, allWagers, league, members, sleeperTeams]);
 
   const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
   const teamById = (id: string) => teams.find((t) => t.id === id);
@@ -50,9 +58,9 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">{mockLeague.name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">{league.name}</h1>
           <p className="text-sm text-muted-foreground">
-            Week {mockLeague.currentWeek} of {mockLeague.totalWeeks}
+            Week {league.currentWeek} of {league.totalWeeks}
           </p>
         </div>
         <Button size="lg" render={<Link href="/matchups" />}>
@@ -246,7 +254,7 @@ export default function DashboardPage() {
                     </span>
                     <span
                       className={
-                        entry.memberId === currentMemberId ? "font-semibold text-primary" : ""
+                        entry.memberId === DEMO_CURRENT_USER_ID ? "font-semibold text-primary" : ""
                       }
                     >
                       {entry.displayName}

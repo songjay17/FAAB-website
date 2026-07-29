@@ -6,24 +6,26 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatFaab } from "@/lib/odds";
-import { mockLeague, mockMembers, mockTeams } from "@/lib/mock-data";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { mockMatchups } from "@/lib/mock-data/matchups";
 
 export default function LeagueOverviewPage() {
-  const standings = [...mockTeams].sort((a, b) => {
+  const { league, members, teams } = useSleeperData();
+
+  const standings = [...teams].sort((a, b) => {
     if (b.record.wins !== a.record.wins) return b.record.wins - a.record.wins;
     return b.pointsFor - a.pointsFor;
   });
 
-  const currentWeekSchedule = mockMatchups.filter((m) => m.week === mockLeague.currentWeek);
+  const currentWeekSchedule = mockMatchups.filter((m) => m.week === league.currentWeek);
   const recentResults = mockMatchups.filter((m) => m.status === "final");
 
-  const teamById = (id: string) => mockTeams.find((t) => t.id === id)!;
-  const ownerByTeamId = (teamId: string) => mockMembers.find((m) => m.teamId === teamId);
+  const teamById = (id: string) => teams.find((t) => t.id === id);
+  const ownerByTeamId = (teamId: string) => members.find((m) => m.teamId === teamId);
 
   return (
     <div className="space-y-6">
-      <PageHeader title="League Overview" description={mockLeague.scoringFormat} />
+      <PageHeader title="League Overview" description={league.scoringFormat} />
 
       <Card>
         <CardContent>
@@ -91,7 +93,7 @@ export default function LeagueOverviewPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardContent>
-            <h2 className="mb-3 font-semibold">Week {mockLeague.currentWeek} Schedule</h2>
+            <h2 className="mb-3 font-semibold">Week {league.currentWeek} Schedule</h2>
             <ul className="space-y-2">
               {currentWeekSchedule.map((m) => (
                 <li key={m.id}>
@@ -100,7 +102,7 @@ export default function LeagueOverviewPage() {
                     className="flex items-center justify-between rounded-md px-2 py-2 text-sm transition-colors hover:bg-accent"
                   >
                     <span>
-                      {teamById(m.homeTeamId).name} vs {teamById(m.awayTeamId).name}
+                      {teamById(m.homeTeamId)?.name} vs {teamById(m.awayTeamId)?.name}
                     </span>
                   </Link>
                 </li>
@@ -116,7 +118,7 @@ export default function LeagueOverviewPage() {
               {recentResults.map((m) => (
                 <li key={m.id} className="flex items-center justify-between px-2 py-2 text-sm">
                   <span>
-                    {teamById(m.homeTeamId).name} vs {teamById(m.awayTeamId).name}
+                    {teamById(m.homeTeamId)?.name} vs {teamById(m.awayTeamId)?.name}
                   </span>
                   <span className="font-mono tabular-nums text-muted-foreground">
                     {formatFaab(m.homeScore ?? 0)}-{formatFaab(m.awayScore ?? 0)}

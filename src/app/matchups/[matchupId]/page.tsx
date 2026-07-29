@@ -13,8 +13,8 @@ import { OptimalLineupTable } from "@/components/matchups/optimal-lineup-table";
 import { BetSlip, type BetSlipSelection } from "@/components/betting/bet-slip";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useBetting } from "@/lib/state/betting-provider";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { formatFaab, formatPercent, impliedProbability } from "@/lib/odds";
-import { mockMembers } from "@/lib/mock-data";
 import { getMatchupById, getProjectedLineup } from "@/lib/services/matchup-service";
 import { getTeamById } from "@/lib/services/team-service";
 import type { FantasyTeam, ProjectedLineup, WeeklyMatchup } from "@/lib/types";
@@ -30,6 +30,7 @@ function formatLockTime(iso: string) {
 export default function MatchupDetailPage() {
   const { matchupId } = useParams<{ matchupId: string }>();
   const { openWagerForMatchup, allMarkets } = useBetting();
+  const { members, teams: sleeperTeams } = useSleeperData();
 
   const [matchup, setMatchup] = useState<WeeklyMatchup | null | undefined>(undefined);
   const [homeTeam, setHomeTeam] = useState<FantasyTeam | undefined>(undefined);
@@ -49,8 +50,8 @@ export default function MatchupDetailPage() {
       }
       setMatchup(found);
       const [home, away, hLineup, aLineup] = await Promise.all([
-        getTeamById(found.homeTeamId),
-        getTeamById(found.awayTeamId),
+        getTeamById(sleeperTeams, found.homeTeamId),
+        getTeamById(sleeperTeams, found.awayTeamId),
         getProjectedLineup(found.homeTeamId, found.id),
         getProjectedLineup(found.awayTeamId, found.id),
       ]);
@@ -59,7 +60,7 @@ export default function MatchupDetailPage() {
       setHomeLineup(hLineup);
       setAwayLineup(aLineup);
     })();
-  }, [matchupId]);
+  }, [matchupId, sleeperTeams]);
 
   const market = matchup ? allMarkets.find((m) => m.matchupId === matchup.id) : undefined;
 
@@ -81,8 +82,8 @@ export default function MatchupDetailPage() {
     return null;
   }
 
-  const homeOwner = mockMembers.find((m) => m.teamId === homeTeam.id);
-  const awayOwner = mockMembers.find((m) => m.teamId === awayTeam.id);
+  const homeOwner = members.find((m) => m.teamId === homeTeam.id);
+  const awayOwner = members.find((m) => m.teamId === awayTeam.id);
   const existingWager = openWagerForMatchup(matchup.id);
   const isLocked = market.status !== "open" || Boolean(existingWager);
 
