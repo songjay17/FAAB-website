@@ -17,7 +17,7 @@ import {
 import { WagerCard } from "@/components/betting/wager-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { useBetting } from "@/lib/state/betting-provider";
-import { mockTeams } from "@/lib/mock-data";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { getAvailableWeeks } from "@/lib/services/matchup-service";
 import type { WagerStatus } from "@/lib/types";
 
@@ -31,6 +31,7 @@ const tabs: Array<{ value: string; label: string; status?: WagerStatus }> = [
 
 function MyBetsContent() {
   const { wagers } = useBetting();
+  const { teams } = useSleeperData();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") ?? "open";
@@ -51,7 +52,7 @@ function MyBetsContent() {
     router.push(`/bets?${params.toString()}`);
   }
 
-  const teamById = (id: string) => mockTeams.find((t) => t.id === id);
+  const teamById = (id: string) => teams.find((t) => t.id === id);
 
   return (
     <div>

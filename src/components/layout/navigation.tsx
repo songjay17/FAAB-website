@@ -4,18 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav-items";
-import { mockLeague } from "@/lib/mock-data";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 
 export function Navigation() {
   const pathname = usePathname();
+  const { league } = useSleeperData();
 
   return (
     <aside className="hidden lg:flex lg:w-60 lg:shrink-0 lg:flex-col lg:border-r lg:border-sidebar-border lg:bg-sidebar">
       <div className="flex h-16 items-center gap-2 px-5">
         <span className="text-xl">🏈</span>
         <div className="flex flex-col leading-none">
-          <span className="font-semibold text-sidebar-foreground">{mockLeague.name}</span>
-          <span className="text-xs text-muted-foreground">Week {mockLeague.currentWeek}</span>
+          <span className="font-semibold text-sidebar-foreground">{league.name}</span>
+          <span className="text-xs text-muted-foreground">Week {league.currentWeek}</span>
         </div>
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-3 py-2">

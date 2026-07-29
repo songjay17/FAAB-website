@@ -17,14 +17,15 @@ import {
 } from "@/components/ui/dialog";
 import { formatFaab, formatMoneyline } from "@/lib/odds";
 import { useBetting } from "@/lib/state/betting-provider";
-import { mockMembers, mockTeams } from "@/lib/mock-data";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
+import type { FantasyTeam, LeagueMember } from "@/lib/types";
 
-function memberName(memberId: string) {
-  return mockMembers.find((m) => m.id === memberId)?.displayName ?? memberId;
+function memberName(members: LeagueMember[], memberId: string) {
+  return members.find((m) => m.id === memberId)?.displayName ?? memberId;
 }
 
-function teamName(teamId: string) {
-  return mockTeams.find((t) => t.id === teamId)?.name ?? teamId;
+function teamName(teams: FantasyTeam[], teamId: string) {
+  return teams.find((t) => t.id === teamId)?.name ?? teamId;
 }
 
 export function VoidWagerCard({
@@ -35,6 +36,7 @@ export function VoidWagerCard({
   onVoided?: (summary: string) => void;
 }) {
   const { allWagers, voidWager } = useBetting();
+  const { members, teams } = useSleeperData();
   const [selectedWagerId, setSelectedWagerId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function VoidWagerCard({
     }
     const wager = allWagers.find((w) => w.id === selectedWagerId);
     onVoided?.(
-      `Voided ${wager ? memberName(wager.memberId) : "a"}'s ${wager ? formatFaab(wager.stakeFaab) : ""} FAAB bet — reason: ${reason.trim()}.`
+      `Voided ${wager ? memberName(members, wager.memberId) : "a"}'s ${wager ? formatFaab(wager.stakeFaab) : ""} FAAB bet — reason: ${reason.trim()}.`
     );
     setSelectedWagerId(null);
     setReason("");
@@ -106,13 +108,13 @@ export function VoidWagerCard({
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <p className="font-medium text-foreground">
-                          {memberName(wager.memberId)}{" "}
+                          {memberName(members, wager.memberId)}{" "}
                           <span className="text-xs font-normal text-muted-foreground">
                             Week {wager.week}
                           </span>
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {teamName(wager.selectedTeamId)} vs {teamName(wager.opponentTeamId)} ·{" "}
+                          {teamName(teams, wager.selectedTeamId)} vs {teamName(teams, wager.opponentTeamId)} ·{" "}
                           {formatMoneyline(wager.moneylineAtBet)}
                         </p>
                       </div>

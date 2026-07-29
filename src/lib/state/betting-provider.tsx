@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { BettingMarket, FaabWallet, MarketStatus, Wager } from "@/lib/types";
 import { calculatePayout, calculateProfit } from "@/lib/odds";
-import { currentMemberId } from "@/lib/mock-data/league";
+import { DEMO_CURRENT_USER_ID as currentMemberId } from "@/lib/sleeper/config";
 import { mockMatchups } from "@/lib/mock-data/matchups";
 import { mockMarkets } from "@/lib/mock-data/markets";
 import { mockWallets } from "@/lib/mock-data/wallets";

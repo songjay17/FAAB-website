@@ -10,7 +10,8 @@ import { WeekNav } from "@/components/shared/week-nav";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
 import { getAvailableWeeks } from "@/lib/services/matchup-service";
 import { useWeekParam } from "@/lib/hooks/use-week-param";
-import { currentMemberId } from "@/lib/mock-data/league";
+import { DEMO_CURRENT_USER_ID } from "@/lib/sleeper/config";
+import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { useBetting } from "@/lib/state/betting-provider";
 import type { LeaderboardEntry } from "@/lib/types";
 
@@ -20,6 +21,7 @@ function LeaderboardContent() {
   const scope = (searchParams.get("scope") as "week" | "season") ?? "season";
   const { week, goToWeek } = useWeekParam("/leaderboard");
   const { allWallets, allWagers } = useBetting();
+  const { members, teams } = useSleeperData();
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -29,11 +31,11 @@ function LeaderboardContent() {
   }, []);
 
   useEffect(() => {
-    getLeaderboard(scope, allWallets, allWagers, week).then((result) => {
+    getLeaderboard(scope, allWallets, allWagers, members, teams, week).then((result) => {
       setEntries(result);
       setLoadedKey(`${scope}-${week}`);
     });
-  }, [scope, week, allWallets, allWagers]);
+  }, [scope, week, allWallets, allWagers, members, teams]);
 
   const isLoading = loadedKey !== `${scope}-${week}`;
 
@@ -64,7 +66,7 @@ function LeaderboardContent() {
       {isLoading || entries === null ? (
         <LoadingSkeleton variant="table" count={8} />
       ) : (
-        <LeaderboardTable entries={entries} currentMemberId={currentMemberId} />
+        <LeaderboardTable entries={entries} currentMemberId={DEMO_CURRENT_USER_ID} />
       )}
     </div>
   );

@@ -1,24 +1,26 @@
-import type { FaabWallet, LeaderboardEntry, Wager } from "@/lib/types";
-import { mockLeague, mockMembers, mockTeams } from "@/lib/mock-data";
+import type { FaabWallet, FantasyTeam, LeagueMember, LeaderboardEntry, Wager } from "@/lib/types";
 import { buildLeaderboard } from "@/lib/state/leaderboard";
 
 /**
  * Derives the leaderboard from live betting state (wallets/wagers), the
  * single source of truth — see src/lib/state/leaderboard.ts. Callers get
- * `wallets`/`wagers` from `useBetting()`'s `allWallets`/`allWagers`, since
- * this data lives in React context rather than static mock exports.
+ * `wallets`/`wagers` from `useBetting()`'s `allWallets`/`allWagers` and
+ * `members`/`teams` from `useSleeperData()`, since neither lives in a static
+ * mock export anymore.
  */
 export async function getLeaderboard(
   scope: "week" | "season",
   wallets: FaabWallet[],
   wagers: Wager[],
-  week: number = mockLeague.currentWeek
+  members: LeagueMember[],
+  teams: FantasyTeam[],
+  week: number
 ): Promise<LeaderboardEntry[]> {
   return buildLeaderboard({
     scope,
     week,
-    members: mockMembers,
-    teams: mockTeams,
+    members,
+    teams,
     wallets,
     wagers,
   });

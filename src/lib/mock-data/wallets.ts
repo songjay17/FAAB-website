@@ -4,7 +4,7 @@ import type { FaabWallet } from "@/lib/types";
 // (net winnings/losses so far) minus whatever's currently reserved in open bets.
 export const mockWallets: FaabWallet[] = [
   {
-    memberId: "member-1",
+    memberId: "975162996680945664",
     totalBudget: 1000,
     availableFaab: 1063,
     reservedFaab: 110,
@@ -12,7 +12,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: 173,
   },
   {
-    memberId: "member-2",
+    memberId: "984151623574323200",
     totalBudget: 1000,
     availableFaab: 1170,
     reservedFaab: 40,
@@ -20,7 +20,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: 210,
   },
   {
-    memberId: "member-3",
+    memberId: "984156047625523200",
     totalBudget: 1000,
     availableFaab: 1070,
     reservedFaab: 25,
@@ -28,7 +28,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: 95,
   },
   {
-    memberId: "member-4",
+    memberId: "594590141419405312",
     totalBudget: 1000,
     availableFaab: 860,
     reservedFaab: 0,
@@ -36,7 +36,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: -140,
   },
   {
-    memberId: "member-5",
+    memberId: "984230356897337344",
     totalBudget: 1000,
     availableFaab: 990,
     reservedFaab: 50,
@@ -44,7 +44,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: 40,
   },
   {
-    memberId: "member-6",
+    memberId: "987034877151293440",
     totalBudget: 1000,
     availableFaab: 720,
     reservedFaab: 0,
@@ -52,7 +52,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: -280,
   },
   {
-    memberId: "member-7",
+    memberId: "990743597525831680",
     totalBudget: 1000,
     availableFaab: 875,
     reservedFaab: 30,
@@ -60,7 +60,7 @@ export const mockWallets: FaabWallet[] = [
     seasonProfitLoss: -95,
   },
   {
-    memberId: "member-8",
+    memberId: "990745711383805952",
     totalBudget: 1000,
     availableFaab: 680,
     reservedFaab: 0,

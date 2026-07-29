@@ -1,10 +1,12 @@
 import type { FantasyTeam } from "@/lib/types";
-import { mockTeams } from "@/lib/mock-data";
 
-export async function getTeams(): Promise<FantasyTeam[]> {
-  return mockTeams;
+export async function getTeams(teams: FantasyTeam[]): Promise<FantasyTeam[]> {
+  return teams;
 }
 
-export async function getTeamById(teamId: string): Promise<FantasyTeam | undefined> {
-  return mockTeams.find((t) => t.id === teamId);
+export async function getTeamById(
+  teams: FantasyTeam[],
+  teamId: string
+): Promise<FantasyTeam | undefined> {
+  return teams.find((t) => t.id === teamId);
 }
