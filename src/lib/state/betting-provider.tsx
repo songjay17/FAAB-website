@@ -62,10 +62,22 @@ function isValidBettingState(value: unknown): value is BettingState {
   );
 }
 
-let wagerCounter = 1000;
-function nextWagerReference() {
-  wagerCounter += 1;
-  return `JHL-${wagerCounter}`;
+const WAGER_REFERENCE_PREFIX = "JHL-";
+const WAGER_REFERENCE_START = 1000;
+
+/**
+ * Derived from persisted wagers rather than a module-level counter — a
+ * counter reset to its initial value on every page load and could reissue a
+ * reference already taken by a wager sitting in localStorage from an earlier
+ * session.
+ */
+function nextWagerReference(existingWagers: Wager[]) {
+  const highest = existingWagers.reduce((max, w) => {
+    if (!w.reference.startsWith(WAGER_REFERENCE_PREFIX)) return max;
+    const n = Number(w.reference.slice(WAGER_REFERENCE_PREFIX.length));
+    return Number.isFinite(n) && n > max ? n : max;
+  }, WAGER_REFERENCE_START);
+  return `${WAGER_REFERENCE_PREFIX}${highest + 1}`;
 }
 
 function bettingReducer(state: BettingState, action: BettingAction): BettingState {
@@ -155,7 +167,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     const payout = Math.round(calculatePayout(stakeFaab, moneyline) * 100) / 100;
     const newWager: Wager = {
       id: `wager-${Date.now()}`,
-      reference: nextWagerReference(),
+      reference: nextWagerReference(state.wagers),
       memberId: currentMemberId,
       marketId: market.id,
       matchupId: market.matchupId,
