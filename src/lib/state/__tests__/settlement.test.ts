@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { settleWagersForWeek, voidWager } from "@/lib/state/settlement";
+import { reconcileWaiverSpend, settleWagersForWeek, voidWager } from "@/lib/state/settlement";
 import { calculatePayout } from "@/lib/odds";
 import type { FaabWallet, Wager, WeeklyMatchup } from "@/lib/types";
 
@@ -11,6 +11,7 @@ function makeWallet(overrides: Partial<FaabWallet> = {}): FaabWallet {
     reservedFaab: 100,
     weeklyProfitLoss: 0,
     seasonProfitLoss: 0,
+    sleeperWaiverSpend: 0,
     ...overrides,
   };
 }
@@ -305,5 +306,64 @@ describe("voidWager", () => {
 
     expect(second.updatedWallet).toEqual(first.updatedWallet);
     expect(second.updatedWager).toEqual(first.updatedWager);
+  });
+});
+
+describe("reconcileWaiverSpend", () => {
+  it("deducts a new real waiver claim from availableFaab", () => {
+    const wallet = makeWallet({ availableFaab: 500, sleeperWaiverSpend: 20 });
+
+    const result = reconcileWaiverSpend(wallet, 35);
+
+    expect(result.availableFaab).toBe(485);
+    expect(result.sleeperWaiverSpend).toBe(35);
+  });
+
+  it("is a no-op when reported spend hasn't changed", () => {
+    const wallet = makeWallet({ availableFaab: 500, sleeperWaiverSpend: 20 });
+
+    const result = reconcileWaiverSpend(wallet, 20);
+
+    expect(result).toEqual(wallet);
+  });
+
+  it("is a no-op when reported spend decreases (never un-spends a claim)", () => {
+    const wallet = makeWallet({ availableFaab: 500, sleeperWaiverSpend: 20 });
+
+    const result = reconcileWaiverSpend(wallet, 10);
+
+    expect(result).toEqual(wallet);
+  });
+
+  it("does not affect weekly or season profit/loss", () => {
+    const wallet = makeWallet({
+      availableFaab: 500,
+      sleeperWaiverSpend: 20,
+      weeklyProfitLoss: 15,
+      seasonProfitLoss: -40,
+    });
+
+    const result = reconcileWaiverSpend(wallet, 40);
+
+    expect(result.weeklyProfitLoss).toBe(15);
+    expect(result.seasonProfitLoss).toBe(-40);
+  });
+
+  it("never lets availableFaab go negative even if spend exceeds it", () => {
+    const wallet = makeWallet({ availableFaab: 10, sleeperWaiverSpend: 0 });
+
+    const result = reconcileWaiverSpend(wallet, 100);
+
+    expect(result.availableFaab).toBe(0);
+  });
+
+  it("is idempotent: reconciling twice with the same real spend only deducts once", () => {
+    const wallet = makeWallet({ availableFaab: 500, sleeperWaiverSpend: 0 });
+
+    const first = reconcileWaiverSpend(wallet, 30);
+    const second = reconcileWaiverSpend(first, 30);
+
+    expect(second).toEqual(first);
+    expect(second.availableFaab).toBe(470);
   });
 });

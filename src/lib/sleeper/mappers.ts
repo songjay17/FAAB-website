@@ -37,7 +37,18 @@ export function mapLeague(league: SleeperLeague): League {
     currentWeek: league.settings.last_scored_leg,
     totalWeeks: 17,
     scoringFormat: "PPR",
+    waiverBudget: league.settings.waiver_budget,
   };
+}
+
+/** Keyed by owner_id (LeagueMember.id) — real FAAB spent on waiver claims this season. */
+export function mapWaiverSpend(rosters: SleeperRoster[]): Record<string, number> {
+  const spend: Record<string, number> = {};
+  for (const roster of rosters) {
+    if (!roster.owner_id) continue;
+    spend[roster.owner_id] = roster.settings.waiver_budget_used;
+  }
+  return spend;
 }
 
 /** teamId is set to `roster-${roster_id}` — LeagueMember.teamId join key. */

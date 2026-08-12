@@ -75,6 +75,32 @@ export function voidWager(wallet: FaabWallet, wager: Wager): VoidResult {
 }
 
 /**
+ * Reconciles a wallet against real Sleeper waiver-claim spend, e.g. an owner
+ * used real FAAB on a real waiver claim in the actual Sleeper app, which
+ * exists entirely outside this app's own betting ledger. Only ever deducts —
+ * a claim can't be "un-spent" from here, and a same-or-lower reported spend
+ * (nothing new happened, or a correction) is a no-op so this is safe to call
+ * on every load without re-deriving the whole balance from scratch.
+ *
+ * Deliberately does not touch weeklyProfitLoss/seasonProfitLoss: waiver
+ * spend isn't a betting outcome, so it shrinks available balance the same
+ * way a real-world expense would, without counting as a loss on the
+ * leaderboard.
+ */
+export function reconcileWaiverSpend(wallet: FaabWallet, currentSleeperWaiverSpend: number): FaabWallet {
+  const delta = currentSleeperWaiverSpend - wallet.sleeperWaiverSpend;
+  if (delta <= 0) {
+    return wallet;
+  }
+
+  return {
+    ...wallet,
+    availableFaab: Math.max(0, Math.round((wallet.availableFaab - delta) * 100) / 100),
+    sleeperWaiverSpend: currentSleeperWaiverSpend,
+  };
+}
+
+/**
  * Settles all open wagers for a given week against final matchup scores.
  * Pure function: takes current state, returns the next state plus a summary.
  * Only ever reads `open` wagers, so calling this again on an already-settled

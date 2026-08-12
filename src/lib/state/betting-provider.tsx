@@ -8,7 +8,12 @@ import { mockWallets } from "@/lib/mock-data/wallets";
 import { mockWagers } from "@/lib/mock-data/wagers";
 import { useSleeperData } from "./sleeper-data-provider";
 import { generateMarkets } from "./generate-markets";
-import { settleWagersForWeek, voidWager as voidWagerPure, type SettlementResult } from "./settlement";
+import {
+  reconcileWaiverSpend,
+  settleWagersForWeek,
+  voidWager as voidWagerPure,
+  type SettlementResult,
+} from "./settlement";
 
 const STORAGE_KEY = "jhulads:betting-state";
 
@@ -35,12 +40,33 @@ type BettingState = {
 
 type BettingAction = { type: "HYDRATE"; payload: BettingState };
 
-function seedState(allMatchups: WeeklyMatchup[], playersByTeam: Record<string, FantasyPlayer[]>): BettingState {
+function seedState(
+  allMatchups: WeeklyMatchup[],
+  playersByTeam: Record<string, FantasyPlayer[]>,
+  waiverSpendByMemberId: Record<string, number>
+): BettingState {
   return {
-    wallets: mockWallets,
+    wallets: reconcileWallets(mockWallets, waiverSpendByMemberId),
     wagers: mockWagers,
     markets: generateMarkets(allMatchups, playersByTeam),
   };
+}
+
+/**
+ * Applies reconcileWaiverSpend to every wallet against real current Sleeper
+ * spend. Runs once per app load (see initState) rather than on a poll/
+ * websocket — a waiver claim made mid-session won't be picked up until the
+ * next full reload. Acceptable for a league where claims process on a
+ * weekly waiver schedule, not something happening every minute.
+ */
+function reconcileWallets(
+  wallets: FaabWallet[],
+  waiverSpendByMemberId: Record<string, number>
+): FaabWallet[] {
+  return wallets.map((wallet) => {
+    const currentSpend = waiverSpendByMemberId[wallet.memberId];
+    return currentSpend === undefined ? wallet : reconcileWaiverSpend(wallet, currentSpend);
+  });
 }
 
 /** Guards against a pre-existing localStorage entry saved by an older shape of this state. */
@@ -51,7 +77,8 @@ function isValidBettingState(value: unknown): value is BettingState {
     Array.isArray(candidate.wallets) &&
     Array.isArray(candidate.wagers) &&
     Array.isArray(candidate.markets) &&
-    candidate.wallets.some((w) => w.memberId === currentMemberId)
+    candidate.wallets.some((w) => w.memberId === currentMemberId) &&
+    candidate.wallets.every((w) => typeof w.sleeperWaiverSpend === "number")
   );
 }
 
@@ -66,14 +93,22 @@ function isValidBettingState(value: unknown): value is BettingState {
  * just-placed bet on navigation. Reading synchronously here means there's
  * only ever one state value for the whole first render, no race possible.
  */
-function initState(allMatchups: WeeklyMatchup[], playersByTeam: Record<string, FantasyPlayer[]>): BettingState {
+function initState(
+  allMatchups: WeeklyMatchup[],
+  playersByTeam: Record<string, FantasyPlayer[]>,
+  waiverSpendByMemberId: Record<string, number>
+): BettingState {
   if (typeof window !== "undefined") {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (isValidBettingState(parsed)) {
-          return parsed;
+          // A previous session's persisted wallets may be stale relative to
+          // real Sleeper waiver spend that happened since the last visit —
+          // reconcile every time state is loaded from storage, not just on
+          // first-ever seed.
+          return { ...parsed, wallets: reconcileWallets(parsed.wallets, waiverSpendByMemberId) };
         }
         window.localStorage.removeItem(STORAGE_KEY);
       }
@@ -81,7 +116,7 @@ function initState(allMatchups: WeeklyMatchup[], playersByTeam: Record<string, F
       // Ignore corrupt/unavailable storage (e.g. private browsing) and fall through to seed state.
     }
   }
-  return seedState(allMatchups, playersByTeam);
+  return seedState(allMatchups, playersByTeam, waiverSpendByMemberId);
 }
 
 const WAGER_REFERENCE_PREFIX = "JHL-";
@@ -139,12 +174,12 @@ type BettingContextValue = {
 const BettingContext = createContext<BettingContextValue | null>(null);
 
 export function BettingProvider({ children }: { children: ReactNode }) {
-  const { matchupsByWeek, playersByTeam } = useSleeperData();
+  const { matchupsByWeek, playersByTeam, waiverSpendByMemberId } = useSleeperData();
   const allMatchups = Array.from(matchupsByWeek.values()).flat();
   const [state, dispatch] = useReducer(
     bettingReducer,
     undefined,
-    () => initState(allMatchups, playersByTeam)
+    () => initState(allMatchups, playersByTeam, waiverSpendByMemberId)
   );
 
   useEffect(() => {
@@ -214,7 +249,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(STORAGE_KEY);
     }
-    dispatch({ type: "HYDRATE", payload: seedState(allMatchups, playersByTeam) });
+    dispatch({ type: "HYDRATE", payload: seedState(allMatchups, playersByTeam, waiverSpendByMemberId) });
   }
 
   function settleWeek(week: number): SettlementResult {

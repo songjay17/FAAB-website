@@ -11,6 +11,7 @@ export type SleeperLeague = {
   settings: {
     playoff_week_start: number;
     last_scored_leg: number;
+    waiver_budget: number;
   };
 };
 
@@ -22,6 +23,8 @@ export type SleeperRosterSettings = {
   fpts_decimal: number;
   fpts_against: number;
   fpts_against_decimal: number;
+  /** Real FAAB spent on waiver claims this season, out of the league's waiver_budget. */
+  waiver_budget_used: number;
 };
 
 export type SleeperRoster = {

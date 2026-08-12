@@ -3,7 +3,15 @@ import { loadProjectionLookup } from "@/lib/fantasypros/projections-service";
 import { SLEEPER_LEAGUE_ID, SLEEPER_SEASON } from "./config";
 import { fetchLeague, fetchMatchups, fetchRosters, fetchUsers } from "./client";
 import { getAllPlayers } from "./players-cache";
-import { computeRecentForm, mapLeague, mapMatchups, mapMembers, mapRosterPlayers, mapTeams } from "./mappers";
+import {
+  computeRecentForm,
+  mapLeague,
+  mapMatchups,
+  mapMembers,
+  mapRosterPlayers,
+  mapTeams,
+  mapWaiverSpend,
+} from "./mappers";
 import type { SleeperMatchupEntry } from "./types";
 
 export type LeagueData = {
@@ -13,6 +21,8 @@ export type LeagueData = {
   matchupsByWeek: Map<number, WeeklyMatchup[]>;
   /** Keyed by FantasyTeam.id (`roster-${roster_id}`). */
   playersByTeam: Record<string, FantasyPlayer[]>;
+  /** Keyed by LeagueMember.id — real FAAB spent on Sleeper waiver claims this season. */
+  waiverSpendByMemberId: Record<string, number>;
 };
 
 /**
@@ -70,5 +80,6 @@ export async function loadLeagueData(leagueId: string = SLEEPER_LEAGUE_ID): Prom
     teams,
     matchupsByWeek,
     playersByTeam,
+    waiverSpendByMemberId: mapWaiverSpend(rosters),
   };
 }
