@@ -19,16 +19,16 @@ function LeaderboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scope = (searchParams.get("scope") as "week" | "season") ?? "season";
-  const { week, goToWeek } = useWeekParam("/leaderboard");
   const { allWallets, allWagers } = useBetting();
-  const { members, teams } = useSleeperData();
+  const { league, members, teams, matchupsByWeek } = useSleeperData();
+  const { week, goToWeek } = useWeekParam("/leaderboard", league.currentWeek);
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    getAvailableWeeks().then(setAvailableWeeks);
-  }, []);
+    getAvailableWeeks(matchupsByWeek).then(setAvailableWeeks);
+  }, [matchupsByWeek]);
 
   useEffect(() => {
     getLeaderboard(scope, allWallets, allWagers, members, teams, week).then((result) => {

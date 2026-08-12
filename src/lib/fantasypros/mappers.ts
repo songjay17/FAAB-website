@@ -27,10 +27,14 @@ function normalizeName(name: string | null | undefined): string {
 
 export type ProjectionLookup = Map<string, number>;
 
-/** Keyed by `${normalizedName}|${normalizedTeam}`. */
-export function buildProjectionLookup(players: FantasyProsPlayer[]): ProjectionLookup {
+/**
+ * Keyed by `${normalizedName}|${normalizedTeam}`. `players` is nullable —
+ * verified live that FantasyPros can return HTTP 200 with `players: null`
+ * (e.g. a transient empty-count response) rather than an error status.
+ */
+export function buildProjectionLookup(players: FantasyProsPlayer[] | null): ProjectionLookup {
   const lookup: ProjectionLookup = new Map();
-  for (const p of players) {
+  for (const p of players ?? []) {
     const key = `${normalizeName(p.name)}|${normalizeTeam(p.team_id)}`;
     lookup.set(key, p.stats.points_ppr);
   }

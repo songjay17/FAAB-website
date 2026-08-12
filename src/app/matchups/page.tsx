@@ -13,13 +13,13 @@ import { getMatchupsByWeek, getAvailableWeeks } from "@/lib/services/matchup-ser
 import { getTeams } from "@/lib/services/team-service";
 import { useBetting } from "@/lib/state/betting-provider";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
-import { mockLineups } from "@/lib/mock-data/matchups";
+import { getOptimalLineup } from "@/lib/state/optimal-lineup";
 import type { FantasyTeam, WeeklyMatchup } from "@/lib/types";
 
 function MatchupsPageContent() {
-  const { week, goToWeek } = useWeekParam("/matchups");
   const { allMarkets } = useBetting();
-  const { league, members, teams: sleeperTeams } = useSleeperData();
+  const { league, members, teams: sleeperTeams, matchupsByWeek, playersByTeam } = useSleeperData();
+  const { week, goToWeek } = useWeekParam("/matchups", league.currentWeek);
 
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
@@ -32,16 +32,16 @@ function MatchupsPageContent() {
   useEffect(() => {
     (async () => {
       const [weekMatchups, teamList, availableWeeks] = await Promise.all([
-        getMatchupsByWeek(week),
+        getMatchupsByWeek(matchupsByWeek, week),
         getTeams(sleeperTeams),
-        getAvailableWeeks(),
+        getAvailableWeeks(matchupsByWeek),
       ]);
       setMatchups(weekMatchups);
       setTeams(teamList);
       setWeeks(availableWeeks);
       setLoadedWeek(week);
     })();
-  }, [week, sleeperTeams]);
+  }, [week, sleeperTeams, matchupsByWeek]);
 
   const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
 
@@ -59,9 +59,11 @@ function MatchupsPageContent() {
   const teamById = (id: string) => teams.find((t) => t.id === id)!;
   const ownerByTeamId = (teamId: string) =>
     members.find((m) => m.teamId === teamId) ?? members[0];
-  const projectedFor = (teamId: string, matchupId: string) =>
-    mockLineups.find((l) => l.teamId === teamId && l.matchupId === matchupId)
-      ?.totalProjectedPoints ?? 0;
+  const projectedFor = (teamId: string, matchupId: string) => {
+    const roster = playersByTeam[teamId];
+    if (!roster) return 0;
+    return getOptimalLineup(teamId, matchupId, roster).totalProjectedPoints;
+  };
 
   return (
     <div>

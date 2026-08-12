@@ -7,18 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatFaab } from "@/lib/odds";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
-import { mockMatchups } from "@/lib/mock-data/matchups";
 
 export default function LeagueOverviewPage() {
-  const { league, members, teams } = useSleeperData();
+  const { league, members, teams, matchupsByWeek } = useSleeperData();
 
   const standings = [...teams].sort((a, b) => {
     if (b.record.wins !== a.record.wins) return b.record.wins - a.record.wins;
     return b.pointsFor - a.pointsFor;
   });
 
-  const currentWeekSchedule = mockMatchups.filter((m) => m.week === league.currentWeek);
-  const recentResults = mockMatchups.filter((m) => m.status === "final");
+  const currentWeekSchedule = matchupsByWeek.get(league.currentWeek) ?? [];
+  const recentResults = (matchupsByWeek.get(league.currentWeek) ?? []).filter(
+    (m) => m.status === "final"
+  );
 
   const teamById = (id: string) => teams.find((t) => t.id === id);
   const ownerByTeamId = (teamId: string) => members.find((m) => m.teamId === teamId);

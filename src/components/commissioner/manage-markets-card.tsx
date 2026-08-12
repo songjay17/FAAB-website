@@ -15,7 +15,6 @@ import {
 import { MarketStatusBadge } from "@/components/betting/market-status-badge";
 import { useBetting } from "@/lib/state/betting-provider";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
-import { mockMatchups } from "@/lib/mock-data";
 import type { FantasyTeam } from "@/lib/types";
 
 function teamName(teams: FantasyTeam[], teamId: string) {
@@ -24,7 +23,8 @@ function teamName(teams: FantasyTeam[], teamId: string) {
 
 export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
   const { allMarkets, setMarketStatus } = useBetting();
-  const { teams } = useSleeperData();
+  const { teams, matchupsByWeek } = useSleeperData();
+  const allMatchups = Array.from(matchupsByWeek.values()).flat();
 
   // Only "open" and "locked" are commissioner-togglable here — "paused"
   // reads as a league-wide state (see the separate Pause Betting card) and
@@ -33,7 +33,7 @@ export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
     .filter((m) => m.status === "open" || m.status === "locked")
     .map((market) => ({
       market,
-      matchup: mockMatchups.find((m) => m.id === market.matchupId),
+      matchup: allMatchups.find((m) => m.id === market.matchupId),
     }))
     .filter((row) => row.matchup !== undefined)
     .sort((a, b) => a.matchup!.week - b.matchup!.week);

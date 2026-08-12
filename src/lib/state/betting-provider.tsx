@@ -1,20 +1,13 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useReducer,
-  useRef,
-  type ReactNode,
-} from "react";
-import type { BettingMarket, FaabWallet, MarketStatus, Wager } from "@/lib/types";
+import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
+import type { BettingMarket, FaabWallet, FantasyPlayer, MarketStatus, Wager, WeeklyMatchup } from "@/lib/types";
 import { calculatePayout, calculateProfit } from "@/lib/odds";
 import { DEMO_CURRENT_USER_ID as currentMemberId } from "@/lib/sleeper/config";
-import { mockMatchups } from "@/lib/mock-data/matchups";
-import { mockMarkets } from "@/lib/mock-data/markets";
 import { mockWallets } from "@/lib/mock-data/wallets";
 import { mockWagers } from "@/lib/mock-data/wagers";
+import { useSleeperData } from "./sleeper-data-provider";
+import { generateMarkets } from "./generate-markets";
 import { settleWagersForWeek, voidWager as voidWagerPure, type SettlementResult } from "./settlement";
 
 const STORAGE_KEY = "jhulads:betting-state";
@@ -42,11 +35,11 @@ type BettingState = {
 
 type BettingAction = { type: "HYDRATE"; payload: BettingState };
 
-function seedState(): BettingState {
+function seedState(allMatchups: WeeklyMatchup[], playersByTeam: Record<string, FantasyPlayer[]>): BettingState {
   return {
     wallets: mockWallets,
     wagers: mockWagers,
-    markets: mockMarkets,
+    markets: generateMarkets(allMatchups, playersByTeam),
   };
 }
 
@@ -60,6 +53,35 @@ function isValidBettingState(value: unknown): value is BettingState {
     Array.isArray(candidate.markets) &&
     candidate.wallets.some((w) => w.memberId === currentMemberId)
   );
+}
+
+/**
+ * Reads any persisted state synchronously in the reducer's lazy initializer
+ * rather than via a post-mount effect + ref-guard. That older pattern raced
+ * with React Strict Mode's dev-only double-invocation of effects: the
+ * hydration ref survives Strict Mode's throwaway first mount, so on the
+ * second (real) mount the write-effect's "already hydrated" guard was
+ * already true and could flush fresh seed state to storage before that
+ * mount's own hydration dispatch had propagated — silently discarding a
+ * just-placed bet on navigation. Reading synchronously here means there's
+ * only ever one state value for the whole first render, no race possible.
+ */
+function initState(allMatchups: WeeklyMatchup[], playersByTeam: Record<string, FantasyPlayer[]>): BettingState {
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (isValidBettingState(parsed)) {
+          return parsed;
+        }
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // Ignore corrupt/unavailable storage (e.g. private browsing) and fall through to seed state.
+    }
+  }
+  return seedState(allMatchups, playersByTeam);
 }
 
 const WAGER_REFERENCE_PREFIX = "JHL-";
@@ -117,30 +139,16 @@ type BettingContextValue = {
 const BettingContext = createContext<BettingContextValue | null>(null);
 
 export function BettingProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(bettingReducer, undefined, seedState);
-  const hydrated = useRef(false);
+  const { matchupsByWeek, playersByTeam } = useSleeperData();
+  const allMatchups = Array.from(matchupsByWeek.values()).flat();
+  const [state, dispatch] = useReducer(
+    bettingReducer,
+    undefined,
+    () => initState(allMatchups, playersByTeam)
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (isValidBettingState(parsed)) {
-          dispatch({ type: "HYDRATE", payload: parsed });
-        } else {
-          window.localStorage.removeItem(STORAGE_KEY);
-        }
-      }
-    } catch {
-      // Ignore corrupt/unavailable storage (e.g. private browsing) and keep seed state.
-    } finally {
-      hydrated.current = true;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !hydrated.current) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
@@ -206,7 +214,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(STORAGE_KEY);
     }
-    dispatch({ type: "HYDRATE", payload: seedState() });
+    dispatch({ type: "HYDRATE", payload: seedState(allMatchups, playersByTeam) });
   }
 
   function settleWeek(week: number): SettlementResult {
@@ -236,7 +244,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         week,
         wallet: memberWallet,
         wagers: memberWagers,
-        matchups: mockMatchups,
+        matchups: allMatchups,
       });
 
       aggregate.processed += result.processed;

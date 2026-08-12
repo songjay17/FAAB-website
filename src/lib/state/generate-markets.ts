@@ -1,5 +1,5 @@
-import type { BettingMarket, Odds } from "@/lib/types";
-import { mockLineups, mockMatchups } from "./matchups";
+import type { BettingMarket, FantasyPlayer, Odds, WeeklyMatchup } from "@/lib/types";
+import { getOptimalLineup } from "./optimal-lineup";
 
 /**
  * Converts a projected-points edge between two teams into a pair of
@@ -23,7 +23,7 @@ function projectionToMoneylines(homePts: number, awayPts: number): Odds {
   return {
     homeMoneyline: toMoneyline(homeImplied),
     awayMoneyline: toMoneyline(awayImplied),
-    updatedAt: "2026-07-22T12:00:00.000Z",
+    updatedAt: new Date(0).toISOString(),
   };
 }
 
@@ -37,26 +37,29 @@ function seededPoolAmount(seed: string, base: number, range: number): number {
   return base + (hash % range);
 }
 
-// Week 8 matchups intentionally have no market yet (odds not posted) —
-// this is what powers the "matchups not posted" empty state.
-export const mockMarkets: BettingMarket[] = mockMatchups
-  .filter((m) => m.status === "upcoming" && m.week !== 8)
-  .map((matchup) => {
-    const homeLineup = mockLineups.find(
-      (l) => l.matchupId === matchup.id && l.teamId === matchup.homeTeamId
-    );
-    const awayLineup = mockLineups.find(
-      (l) => l.matchupId === matchup.id && l.teamId === matchup.awayTeamId
-    );
-    const homePts = homeLineup?.totalProjectedPoints ?? 110;
-    const awayPts = awayLineup?.totalProjectedPoints ?? 108;
+/**
+ * Builds a BettingMarket for every matchup passed in, pricing odds from each
+ * team's optimal-lineup projected points (see getOptimalLineup). Shared by
+ * both real (Sleeper) and any future mock/test matchup data — the odds math
+ * itself doesn't care where the matchups came from.
+ */
+export function generateMarkets(
+  matchups: WeeklyMatchup[],
+  playersByTeam: Record<string, FantasyPlayer[]>
+): BettingMarket[] {
+  return matchups.map((matchup) => {
+    const homeRoster = playersByTeam[matchup.homeTeamId] ?? [];
+    const awayRoster = playersByTeam[matchup.awayTeamId] ?? [];
+    const homeLineup = getOptimalLineup(matchup.homeTeamId, matchup.id, homeRoster);
+    const awayLineup = getOptimalLineup(matchup.awayTeamId, matchup.id, awayRoster);
 
     return {
       id: `market-${matchup.id}`,
       matchupId: matchup.id,
       status: "open",
-      odds: projectionToMoneylines(homePts, awayPts),
+      odds: projectionToMoneylines(homeLineup.totalProjectedPoints, awayLineup.totalProjectedPoints),
       totalFaabHome: seededPoolAmount(`${matchup.id}-home`, 150, 250),
       totalFaabAway: seededPoolAmount(`${matchup.id}-away`, 120, 220),
     } satisfies BettingMarket;
   });
+}

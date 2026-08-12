@@ -30,7 +30,7 @@ function formatLockTime(iso: string) {
 export default function MatchupDetailPage() {
   const { matchupId } = useParams<{ matchupId: string }>();
   const { openWagerForMatchup, allMarkets } = useBetting();
-  const { members, teams: sleeperTeams } = useSleeperData();
+  const { members, teams: sleeperTeams, matchupsByWeek, playersByTeam } = useSleeperData();
 
   const [matchup, setMatchup] = useState<WeeklyMatchup | null | undefined>(undefined);
   const [homeTeam, setHomeTeam] = useState<FantasyTeam | undefined>(undefined);
@@ -43,7 +43,7 @@ export default function MatchupDetailPage() {
 
   useEffect(() => {
     (async () => {
-      const found = await getMatchupById(matchupId);
+      const found = await getMatchupById(matchupsByWeek, matchupId);
       if (!found) {
         setMatchup(null);
         return;
@@ -52,15 +52,15 @@ export default function MatchupDetailPage() {
       const [home, away, hLineup, aLineup] = await Promise.all([
         getTeamById(sleeperTeams, found.homeTeamId),
         getTeamById(sleeperTeams, found.awayTeamId),
-        getProjectedLineup(found.homeTeamId, found.id),
-        getProjectedLineup(found.awayTeamId, found.id),
+        getProjectedLineup(playersByTeam, found.homeTeamId, found.id),
+        getProjectedLineup(playersByTeam, found.awayTeamId, found.id),
       ]);
       setHomeTeam(home);
       setAwayTeam(away);
       setHomeLineup(hLineup);
       setAwayLineup(aLineup);
     })();
-  }, [matchupId, sleeperTeams]);
+  }, [matchupId, sleeperTeams, matchupsByWeek, playersByTeam]);
 
   const market = matchup ? allMarkets.find((m) => m.matchupId === matchup.id) : undefined;
 
