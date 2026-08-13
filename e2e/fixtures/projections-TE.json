@@ -1,0 +1,118 @@
+{
+  "season": "2025",
+  "week": "7",
+  "count": "10",
+  "positions": "TE",
+  "players": [
+    {
+      "fpid": 10000,
+      "name": "Dalton Kincaid",
+      "position_id": "TE",
+      "team_id": "BUF",
+      "stats": {
+        "points": 9.3,
+        "points_ppr": 9.3,
+        "points_half": 9.3
+      }
+    },
+    {
+      "fpid": 10001,
+      "name": "Theo Johnson",
+      "position_id": "TE",
+      "team_id": "NYG",
+      "stats": {
+        "points": 10.1,
+        "points_ppr": 10.1,
+        "points_half": 10.1
+      }
+    },
+    {
+      "fpid": 10002,
+      "name": "Brock Bowers",
+      "position_id": "TE",
+      "team_id": "LV",
+      "stats": {
+        "points": 10.1,
+        "points_ppr": 10.1,
+        "points_half": 10.1
+      }
+    },
+    {
+      "fpid": 10003,
+      "name": "Oronde Gadsden",
+      "position_id": "TE",
+      "team_id": "LAC",
+      "stats": {
+        "points": 15.1,
+        "points_ppr": 15.1,
+        "points_half": 15.1
+      }
+    },
+    {
+      "fpid": 10004,
+      "name": "Harold Fannin",
+      "position_id": "TE",
+      "team_id": "CLE",
+      "stats": {
+        "points": 14.6,
+        "points_ppr": 14.6,
+        "points_half": 14.6
+      }
+    },
+    {
+      "fpid": 10005,
+      "name": "Colston Loveland",
+      "position_id": "TE",
+      "team_id": "CHI",
+      "stats": {
+        "points": 14.1,
+        "points_ppr": 14.1,
+        "points_half": 14.1
+      }
+    },
+    {
+      "fpid": 10006,
+      "name": "Tyler Warren",
+      "position_id": "TE",
+      "team_id": "IND",
+      "stats": {
+        "points": 12.7,
+        "points_ppr": 12.7,
+        "points_half": 12.7
+      }
+    },
+    {
+      "fpid": 10007,
+      "name": "Zach Ertz",
+      "position_id": "TE",
+      "team_id": null,
+      "stats": {
+        "points": 11.9,
+        "points_ppr": 11.9,
+        "points_half": 11.9
+      }
+    },
+    {
+      "fpid": 10008,
+      "name": "Travis Kelce",
+      "position_id": "TE",
+      "team_id": "KC",
+      "stats": {
+        "points": 14.5,
+        "points_ppr": 14.5,
+        "points_half": 14.5
+      }
+    },
+    {
+      "fpid": 10009,
+      "name": "Darren Waller",
+      "position_id": "TE",
+      "team_id": "CAR",
+      "stats": {
+        "points": 8.1,
+        "points_ppr": 8.1,
+        "points_half": 8.1
+      }
+    }
+  ]
+}

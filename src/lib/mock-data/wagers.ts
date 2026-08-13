@@ -136,14 +136,16 @@ export const mockWagers: Wager[] = [
     settledAt: "2026-07-12T09:00:00.000Z",
   }),
   // Still open going into this pass — this is what the Commissioner
-  // "Settle Week 6" action processes.
+  // "Settle Week 6" action processes. Selects roster-7, the real winner of
+  // Sleeper matchup 6-5 (128.2 to 113.14), so settlement resolves it as a
+  // win — the winning-payout path the leaderboard e2e suite exercises.
   makeWager({
     id: "wager-8",
     reference: "JHL-69920",
     matchupId: "6-5",
     week: 6,
-    selectedTeamId: "roster-5",
-    opponentTeamId: "roster-7",
+    selectedTeamId: "roster-7",
+    opponentTeamId: "roster-5",
     moneylineAtBet: -140,
     stakeFaab: 35,
     status: "open",
