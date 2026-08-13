@@ -24,7 +24,7 @@ export function FaabBalanceCard({
       <CardContent
         className={cn(
           "grid gap-6",
-          variant === "full" ? "sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-4"
+          variant === "full" ? "sm:grid-cols-5" : "grid-cols-2 sm:grid-cols-5"
         )}
       >
         <div>
@@ -50,6 +50,23 @@ export function FaabBalanceCard({
           </div>
           <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-muted-foreground">
             {formatFaab(wallet.reservedFaab)}
+          </p>
+        </div>
+        <div>
+          <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            Sleeper Waivers
+            <Tooltip>
+              <TooltipTrigger aria-label="What is Sleeper waiver spend?">
+                <Info className="size-3" />
+              </TooltipTrigger>
+              <TooltipContent>
+                Real FAAB you&apos;ve spent on waiver claims in Sleeper. Already subtracted
+                from Available to Bet &mdash; shown here so the deduction isn&apos;t hidden.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-muted-foreground">
+            {formatFaab(wallet.sleeperWaiverSpend)}
           </p>
         </div>
         <div>

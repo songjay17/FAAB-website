@@ -33,6 +33,7 @@ function makeWallet(overrides: Partial<FaabWallet> = {}): FaabWallet {
     reservedFaab: 0,
     weeklyProfitLoss: 0,
     seasonProfitLoss: 0,
+    sleeperWaiverSpend: 0,
     ...overrides,
   };
 }
