@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 
 // Each Playwright test gets a fresh, isolated browser context (no cookies,
 // no localStorage) by default. The app's own state model already treats
@@ -35,10 +35,10 @@ test.describe("Leaderboard reflects real betting state", () => {
     await page.goto("/leaderboard");
     await expect(page.getByRole("heading", { name: "Leaderboard" })).toBeVisible();
 
-    // 1) Record the active member's (Justin) initial state on the season
+    // 1) Record the active member's (jdawnso) initial state on the season
     // view (default tab).
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const balanceBefore = await readBalance(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const balanceBefore = await readBalance(page, "jdawnso");
 
     const bodyTextBefore = await page.locator("body").innerText();
     expect(bodyTextBefore).not.toMatch(/NaN|undefined|Infinity/);
@@ -47,25 +47,25 @@ test.describe("Leaderboard reflects real betting state", () => {
     // "Optimal Lineups" is desktop-only (sm:block); the odds buttons are the
     // stable cross-viewport signal that the matchup detail page has loaded.
     await page.goto("/matchups");
-    await page.getByRole("link", { name: /Diggs My Grave/ }).click();
+    await page.getByRole("link", { name: /Crashee Rice/ }).click();
     const oddsButtons = page.getByRole("button", { name: /^Bet on/ });
     await expect(oddsButtons.first()).toBeVisible();
 
     await oddsButtons.first().click();
 
     await expect(page.getByRole("heading", { name: "Bet Slip" })).toBeVisible();
-    await page.getByLabel("Stake (FAAB)").fill("40");
+    await page.getByLabel("Stake (FAAB)").fill("10");
     await page.getByRole("button", { name: "Confirm Bet" }).click();
     await expect(page.getByRole("heading", { name: "Bet Placed" })).toBeVisible({ timeout: 5000 });
 
     // 3) Return to the leaderboard — an open wager must not look like a loss:
     // total bankroll (available + reserved) is unaffected by placing a bet.
     await page.goto("/leaderboard");
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const balanceAfterOpenBet = await readBalance(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const balanceAfterOpenBet = await readBalance(page, "jdawnso");
     expect(balanceAfterOpenBet).toBe(balanceBefore);
 
-    const winsAfterOpenBet = await readWinsLosses(page, "Justin");
+    const winsAfterOpenBet = await readWinsLosses(page, "jdawnso");
 
     const bodyTextAfterOpen = await page.locator("body").innerText();
     expect(bodyTextAfterOpen).not.toMatch(/NaN|undefined|Infinity/);
@@ -79,41 +79,41 @@ test.describe("Leaderboard reflects real betting state", () => {
     await expect(page.getByText(/wagers? processed/)).toBeVisible();
 
     // 5) Return to the leaderboard and verify connected values updated.
-    // Justin's known Week 6 wager (wager-8, team-5 @ -140 vs team-8) wins
-    // that matchup (119.3 to 92.0), so wins should increase by exactly one
+    // jdawnso's known Week 6 wager (wager-8, roster-7 @ -140 vs roster-5) wins
+    // that matchup (128.2 to 113.14), so wins should increase by exactly one
     // and the newly placed (still-open) Week 7 wager must not count.
     await page.goto("/leaderboard");
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const winsAfterSettle = await readWinsLosses(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const winsAfterSettle = await readWinsLosses(page, "jdawnso");
     expect(winsAfterSettle.wins).toBe(winsAfterOpenBet.wins + 1);
     expect(winsAfterSettle.losses).toBe(winsAfterOpenBet.losses);
 
-    const balanceAfterSettle = await readBalance(page, "Justin");
+    const balanceAfterSettle = await readBalance(page, "jdawnso");
     expect(balanceAfterSettle).toBeGreaterThan(balanceAfterOpenBet);
 
     const bodyTextAfterSettle = await page.locator("body").innerText();
     expect(bodyTextAfterSettle).not.toMatch(/NaN|undefined|Infinity/);
 
     // 6) Switch between current-week and season views; values should differ,
-    // since Justin's win was in Week 6 and the current week is Week 7.
+    // since jdawnso's win was in Week 6 and the current week is Week 7.
     await page.getByRole("tab", { name: "This Week" }).click();
     await expect(page.getByRole("tab", { name: "This Week" })).toHaveAttribute("data-active");
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const weekWinsLosses = await readWinsLosses(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const weekWinsLosses = await readWinsLosses(page, "jdawnso");
 
     await page.getByRole("tab", { name: "Season" }).click();
     await expect(page.getByRole("tab", { name: "Season" })).toHaveAttribute("data-active");
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const seasonWinsLosses = await readWinsLosses(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const seasonWinsLosses = await readWinsLosses(page, "jdawnso");
 
     expect(weekWinsLosses).not.toEqual(seasonWinsLosses);
   });
 
   test("winning wager settlement increases bankroll, adds a win, and can change rank", async ({ page }) => {
     await page.goto("/leaderboard");
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const before = await readWinsLosses(page, "Justin");
-    const balanceBefore = await readBalance(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const before = await readWinsLosses(page, "jdawnso");
+    const balanceBefore = await readBalance(page, "jdawnso");
 
     await page.goto("/commissioner");
     await page.getByRole("button", { name: "Settle Week" }).click();
@@ -121,11 +121,11 @@ test.describe("Leaderboard reflects real betting state", () => {
     await expect(page.getByText(/wagers? processed/)).toBeVisible();
 
     await page.goto("/leaderboard");
-    await expect(leaderboardRow(page, "Justin")).toBeVisible();
-    const after = await readWinsLosses(page, "Justin");
-    const balanceAfter = await readBalance(page, "Justin");
+    await expect(leaderboardRow(page, "jdawnso")).toBeVisible();
+    const after = await readWinsLosses(page, "jdawnso");
+    const balanceAfter = await readBalance(page, "jdawnso");
 
-    // wager-8 (Justin, Week 6, team-5) wins its matchup on settlement.
+    // wager-8 (jdawnso, Week 6, roster-7) wins its matchup on settlement.
     expect(after.wins).toBe(before.wins + 1);
     expect(after.losses).toBe(before.losses);
     expect(balanceAfter).toBeGreaterThan(balanceBefore);

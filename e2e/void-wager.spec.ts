@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // Fresh browser context per test = fresh localStorage = seed data
 // (see betting-provider.tsx seedState()), same reset mechanism the
@@ -14,7 +14,7 @@ test.describe("Commissioner: void or refund a wager", () => {
     const dialog = page.getByRole("dialog", { name: "Open wagers" });
     await expect(dialog).toBeVisible();
 
-    const connorRow = page.getByTestId("voidable-wager-row").filter({ hasText: "Connor" });
+    const connorRow = page.getByTestId("voidable-wager-row").filter({ hasText: "cacloading" });
     await expect(connorRow).toBeVisible();
     const stakeText = await connorRow.locator("span.font-mono").innerText();
 
@@ -29,26 +29,26 @@ test.describe("Commissioner: void or refund a wager", () => {
     await connorRow.getByRole("button", { name: "Confirm Void" }).click();
 
     // Row disappears from the open-wagers list once voided.
-    await expect(page.getByTestId("voidable-wager-row").filter({ hasText: "Connor" })).toHaveCount(0);
+    await expect(page.getByTestId("voidable-wager-row").filter({ hasText: "cacloading" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Close" }).first().click();
 
     // Audit Activity gets a live entry reflecting the void.
     await expect(
-      page.getByText(`Voided Connor's ${stakeText} FAAB bet — reason: Market posted with wrong opponent.`)
+      page.getByText(`Voided cacloading's ${stakeText} FAAB bet — reason: Market posted with wrong opponent.`)
     ).toBeVisible();
   });
 
   test("voided wager does not count as won or lost, and leaves balance/P-L unaffected", async ({ page }) => {
     await page.goto("/leaderboard");
-    const connorRow = page.locator('[data-testid="leaderboard-row"]:visible').filter({ hasText: "Connor" }).first();
+    const connorRow = page.locator('[data-testid="leaderboard-row"]:visible').filter({ hasText: "cacloading" }).first();
     await expect(connorRow).toBeVisible();
     const balanceBefore = await connorRow.getByTestId("faab-balance").innerText();
     const winsLossesBefore = await connorRow.getByTestId("wins-losses").innerText();
 
     await page.goto("/commissioner");
     await page.getByRole("button", { name: "Review & Void" }).click();
-    const connorWagerRow = page.getByTestId("voidable-wager-row").filter({ hasText: "Connor" });
+    const connorWagerRow = page.getByTestId("voidable-wager-row").filter({ hasText: "cacloading" });
     await connorWagerRow.getByRole("button", { name: "Void" }).click();
     await connorWagerRow.getByLabel("Reason").fill("Market posted in error");
     await connorWagerRow.getByRole("button", { name: "Confirm Void" }).click();
@@ -57,7 +57,7 @@ test.describe("Commissioner: void or refund a wager", () => {
     await page.goto("/leaderboard");
     const connorRowAfter = page
       .locator('[data-testid="leaderboard-row"]:visible')
-      .filter({ hasText: "Connor" })
+      .filter({ hasText: "cacloading" })
       .first();
     await expect(connorRowAfter).toBeVisible();
 

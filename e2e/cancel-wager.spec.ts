@@ -1,9 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // Fresh browser context per test = fresh localStorage = seed data
 // (see betting-provider.tsx seedState()), same reset mechanism the
-// leaderboard/void-wager e2e suites rely on. wager-1 (JHL-70231, "Hurts So
-// Good") belongs to the signed-in member and is open, so it's a good fixture
+// leaderboard/void-wager e2e suites rely on. wager-1 (JHL-70231, "Puka di
+// Beppo") belongs to the signed-in member and is open, so it's a good fixture
 // for expand-to-see-detail — but it was "placed" days ago in seed data, so
 // it's outside the 5-minute self-cancel grace window (see
 // SELF_CANCEL_WINDOW_MS in betting-provider.tsx) and has no Cancel button.
@@ -16,7 +16,7 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
     await page.goto("/bets");
     await expect(page.getByText("JHL-70231")).toHaveCount(0);
 
-    await page.getByRole("button", { name: /Hurts So Good vs Bijan/ }).click();
+    await page.getByRole("button", { name: /Puka di Beppo vs The Flying/ }).click();
 
     await expect(page.getByText("JHL-70231")).toBeVisible();
     await expect(page.getByText("Placed")).toBeVisible();
@@ -27,7 +27,7 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
     page,
   }) => {
     await page.goto("/bets");
-    await page.getByRole("button", { name: /Hurts So Good vs Bijan/ }).click();
+    await page.getByRole("button", { name: /Puka di Beppo vs The Flying/ }).click();
 
     await expect(page.getByText("JHL-70231")).toBeVisible();
     await expect(page.getByRole("button", { name: "Cancel bet" })).toHaveCount(0);
@@ -46,17 +46,17 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
 
     // Place a fresh bet so it's within the self-cancel grace window.
     await page.goto("/matchups");
-    await page.getByRole("link", { name: /Diggs My Grave/ }).click();
+    await page.getByRole("link", { name: /Crashee Rice/ }).click();
     const oddsButtons = page.getByRole("button", { name: /^Bet on/ });
     await expect(oddsButtons.first()).toBeVisible();
     await oddsButtons.first().click();
     await expect(page.getByRole("heading", { name: "Bet Slip" })).toBeVisible();
-    await page.getByLabel("Stake (FAAB)").fill("30");
+    await page.getByLabel("Stake (FAAB)").fill("10");
     await page.getByRole("button", { name: "Confirm Bet" }).click();
     await expect(page.getByRole("heading", { name: "Bet Placed" })).toBeVisible({ timeout: 5000 });
     await page.getByRole("button", { name: "View in My Bets" }).click();
 
-    await page.getByRole("button", { name: /Diggs My Grave/ }).click();
+    await page.getByRole("button", { name: /C- Tier Daddy/ }).click();
 
     const cancelTrigger = page.getByRole("button", { name: "Cancel bet" });
     await expect(cancelTrigger).toBeVisible();
@@ -65,7 +65,7 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
     const confirmDialog = page.getByRole("alertdialog", { name: "Cancel this bet?" });
     await expect(confirmDialog).toBeVisible();
     await expect(confirmDialog.locator("p")).toContainText(
-      "Your 30 FAAB stake on"
+      "Your 10 FAAB stake on"
     );
     await expect(confirmDialog.locator("p")).toContainText(
       "will be refunded in full"
@@ -73,7 +73,7 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
     await confirmDialog.getByRole("button", { name: "Cancel bet" }).click();
     await expect(confirmDialog).not.toBeVisible();
 
-    // Stake (30 FAAB) is refunded in full: available balance returns to
+    // Stake (10 FAAB) is refunded in full: available balance returns to
     // exactly what it was before the bet was placed (reserved, then
     // released — net zero across place-then-cancel).
     await page.goto("/");
@@ -83,9 +83,9 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
     );
 
     await page.goto("/bets?tab=open");
-    await expect(page.getByRole("button", { name: /Diggs My Grave/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /C- Tier Daddy/ })).toHaveCount(0);
     await page.goto("/bets?tab=refunded");
-    await expect(page.getByRole("button", { name: /Diggs My Grave/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /C- Tier Daddy/ })).toBeVisible();
   });
 
   test("a locked matchup's wager has no cancel option, only the commissioner can void it", async ({
@@ -93,13 +93,14 @@ test.describe("Member: expand a wager card and cancel your own open bet", () => 
   }) => {
     await page.goto("/commissioner");
     await page.getByRole("button", { name: "Manage Markets" }).click();
-    const row = page.getByTestId("manageable-market-row").filter({ hasText: "Hurts So Good vs Bijan Mustard" });
+    // wager-1's matchup (7-4, Puka di Beppo vs The Flying Dutchman).
+    const row = page.locator('[data-testid="manageable-market-row"][data-matchup-id="7-4"]');
     await row.getByRole("button", { name: "Lock" }).click();
     await expect(row.getByText("Locked", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Close" }).first().click();
 
     await page.goto("/bets");
-    await page.getByRole("button", { name: /Hurts So Good vs Bijan/ }).click();
+    await page.getByRole("button", { name: /Puka di Beppo vs The Flying/ }).click();
 
     await expect(page.getByText("Locked", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Cancel bet" })).toHaveCount(0);

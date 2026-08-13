@@ -1,0 +1,118 @@
+{
+  "season": "2025",
+  "week": "7",
+  "count": "10",
+  "positions": "QB",
+  "players": [
+    {
+      "fpid": 10000,
+      "name": "Caleb Williams",
+      "position_id": "QB",
+      "team_id": "CHI",
+      "stats": {
+        "points": 24.9,
+        "points_ppr": 24.9,
+        "points_half": 24.9
+      }
+    },
+    {
+      "fpid": 10001,
+      "name": "Bo Nix",
+      "position_id": "QB",
+      "team_id": "DEN",
+      "stats": {
+        "points": 22.2,
+        "points_ppr": 22.2,
+        "points_half": 22.2
+      }
+    },
+    {
+      "fpid": 10002,
+      "name": "Drake Maye",
+      "position_id": "QB",
+      "team_id": "NE",
+      "stats": {
+        "points": 18.3,
+        "points_ppr": 18.3,
+        "points_half": 18.3
+      }
+    },
+    {
+      "fpid": 10003,
+      "name": "Jayden Daniels",
+      "position_id": "QB",
+      "team_id": "WAS",
+      "stats": {
+        "points": 21.1,
+        "points_ppr": 21.1,
+        "points_half": 21.1
+      }
+    },
+    {
+      "fpid": 10004,
+      "name": "Jaxson Dart",
+      "position_id": "QB",
+      "team_id": "NYG",
+      "stats": {
+        "points": 25.8,
+        "points_ppr": 25.8,
+        "points_half": 25.8
+      }
+    },
+    {
+      "fpid": 10005,
+      "name": "Shedeur Sanders",
+      "position_id": "QB",
+      "team_id": "CLE",
+      "stats": {
+        "points": 19.6,
+        "points_ppr": 19.6,
+        "points_half": 19.6
+      }
+    },
+    {
+      "fpid": 10006,
+      "name": "Tyler Shough",
+      "position_id": "QB",
+      "team_id": "NO",
+      "stats": {
+        "points": 23.6,
+        "points_ppr": 23.6,
+        "points_half": 23.6
+      }
+    },
+    {
+      "fpid": 10007,
+      "name": "Jared Goff",
+      "position_id": "QB",
+      "team_id": "DET",
+      "stats": {
+        "points": 21,
+        "points_ppr": 21,
+        "points_half": 21
+      }
+    },
+    {
+      "fpid": 10008,
+      "name": "Jacoby Brissett",
+      "position_id": "QB",
+      "team_id": "ARI",
+      "stats": {
+        "points": 21.4,
+        "points_ppr": 21.4,
+        "points_half": 21.4
+      }
+    },
+    {
+      "fpid": 10009,
+      "name": "Dak Prescott",
+      "position_id": "QB",
+      "team_id": "DAL",
+      "stats": {
+        "points": 22.6,
+        "points_ppr": 22.6,
+        "points_half": 22.6
+      }
+    }
+  ]
+}

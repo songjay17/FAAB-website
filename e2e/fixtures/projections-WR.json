@@ -1,0 +1,118 @@
+{
+  "season": "2025",
+  "week": "7",
+  "count": "10",
+  "positions": "WR",
+  "players": [
+    {
+      "fpid": 10000,
+      "name": "Jayden Reed",
+      "position_id": "WR",
+      "team_id": "GB",
+      "stats": {
+        "points": 13.3,
+        "points_ppr": 13.3,
+        "points_half": 13.3
+      }
+    },
+    {
+      "fpid": 10001,
+      "name": "Rashee Rice",
+      "position_id": "WR",
+      "team_id": "KC",
+      "stats": {
+        "points": 14.7,
+        "points_ppr": 14.7,
+        "points_half": 14.7
+      }
+    },
+    {
+      "fpid": 10002,
+      "name": "Michael Wilson",
+      "position_id": "WR",
+      "team_id": "ARI",
+      "stats": {
+        "points": 14.3,
+        "points_ppr": 14.3,
+        "points_half": 14.3
+      }
+    },
+    {
+      "fpid": 10003,
+      "name": "Jalen McMillan",
+      "position_id": "WR",
+      "team_id": "TB",
+      "stats": {
+        "points": 14.3,
+        "points_ppr": 14.3,
+        "points_half": 14.3
+      }
+    },
+    {
+      "fpid": 10004,
+      "name": "Rome Odunze",
+      "position_id": "WR",
+      "team_id": "CHI",
+      "stats": {
+        "points": 11.4,
+        "points_ppr": 11.4,
+        "points_half": 11.4
+      }
+    },
+    {
+      "fpid": 10005,
+      "name": "Xavier Worthy",
+      "position_id": "WR",
+      "team_id": "KC",
+      "stats": {
+        "points": 14.4,
+        "points_ppr": 14.4,
+        "points_half": 14.4
+      }
+    },
+    {
+      "fpid": 10006,
+      "name": "Adonai Mitchell",
+      "position_id": "WR",
+      "team_id": "NYJ",
+      "stats": {
+        "points": 12.4,
+        "points_ppr": 12.4,
+        "points_half": 12.4
+      }
+    },
+    {
+      "fpid": 10007,
+      "name": "Marvin Harrison",
+      "position_id": "WR",
+      "team_id": "ARI",
+      "stats": {
+        "points": 17.9,
+        "points_ppr": 17.9,
+        "points_half": 17.9
+      }
+    },
+    {
+      "fpid": 10008,
+      "name": "Brian Thomas",
+      "position_id": "WR",
+      "team_id": "JAX",
+      "stats": {
+        "points": 12.4,
+        "points_ppr": 12.4,
+        "points_half": 12.4
+      }
+    },
+    {
+      "fpid": 10009,
+      "name": "Ladd McConkey",
+      "position_id": "WR",
+      "team_id": "LAC",
+      "stats": {
+        "points": 15.6,
+        "points_ppr": 15.6,
+        "points_half": 15.6
+      }
+    }
+  ]
+}
