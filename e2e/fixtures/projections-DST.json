@@ -1,0 +1,118 @@
+{
+  "season": "2025",
+  "week": "7",
+  "count": "10",
+  "positions": "DST",
+  "players": [
+    {
+      "fpid": 10000,
+      "name": "Baltimore Ravens",
+      "position_id": "DST",
+      "team_id": "BAL",
+      "stats": {
+        "points": 9.8,
+        "points_ppr": 9.8,
+        "points_half": 9.8
+      }
+    },
+    {
+      "fpid": 10001,
+      "name": "Buffalo Bills",
+      "position_id": "DST",
+      "team_id": "BUF",
+      "stats": {
+        "points": 11.5,
+        "points_ppr": 11.5,
+        "points_half": 11.5
+      }
+    },
+    {
+      "fpid": 10002,
+      "name": "Dallas Cowboys",
+      "position_id": "DST",
+      "team_id": "DAL",
+      "stats": {
+        "points": 13.5,
+        "points_ppr": 13.5,
+        "points_half": 13.5
+      }
+    },
+    {
+      "fpid": 10003,
+      "name": "Denver Broncos",
+      "position_id": "DST",
+      "team_id": "DEN",
+      "stats": {
+        "points": 13.2,
+        "points_ppr": 13.2,
+        "points_half": 13.2
+      }
+    },
+    {
+      "fpid": 10004,
+      "name": "Detroit Lions",
+      "position_id": "DST",
+      "team_id": "DET",
+      "stats": {
+        "points": 7.2,
+        "points_ppr": 7.2,
+        "points_half": 7.2
+      }
+    },
+    {
+      "fpid": 10005,
+      "name": "Houston Texans",
+      "position_id": "DST",
+      "team_id": "HOU",
+      "stats": {
+        "points": 10.3,
+        "points_ppr": 10.3,
+        "points_half": 10.3
+      }
+    },
+    {
+      "fpid": 10006,
+      "name": "Jacksonville Jaguars",
+      "position_id": "DST",
+      "team_id": "JAX",
+      "stats": {
+        "points": 8.2,
+        "points_ppr": 8.2,
+        "points_half": 8.2
+      }
+    },
+    {
+      "fpid": 10007,
+      "name": "Los Angeles Rams",
+      "position_id": "DST",
+      "team_id": "LAR",
+      "stats": {
+        "points": 10.8,
+        "points_ppr": 10.8,
+        "points_half": 10.8
+      }
+    },
+    {
+      "fpid": 10008,
+      "name": "Minnesota Vikings",
+      "position_id": "DST",
+      "team_id": "MIN",
+      "stats": {
+        "points": 8.1,
+        "points_ppr": 8.1,
+        "points_half": 8.1
+      }
+    },
+    {
+      "fpid": 10009,
+      "name": "New England Patriots",
+      "position_id": "DST",
+      "team_id": "NE",
+      "stats": {
+        "points": 14.5,
+        "points_ppr": 14.5,
+        "points_half": 14.5
+      }
+    }
+  ]
+}

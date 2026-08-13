@@ -1,7 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 // Fresh browser context per test = fresh localStorage = seed data.
-// Seed data has matchups/wagers for weeks 6, 7, 8 only.
+// Fixture data pins the current week to 7 (real matchups exist for weeks
+// 1-7); seeded wagers span weeks 5-7, with week 6 settled and week 7 open.
 
 test.describe("Leaderboard: browsing a past week", () => {
   test("switching weeks in \"This Week\" mode shows different, real stats", async ({ page }) => {
@@ -9,7 +10,7 @@ test.describe("Leaderboard: browsing a past week", () => {
     await expect(page.getByRole("tab", { name: "This Week" })).toHaveAttribute("data-active");
     await expect(page.getByRole("main").getByText("Week 7", { exact: true })).toBeVisible();
 
-    const justinRow = page.locator('[data-testid="leaderboard-row"]:visible').filter({ hasText: "Justin" }).first();
+    const justinRow = page.locator('[data-testid="leaderboard-row"]:visible').filter({ hasText: "jdawnso" }).first();
     await expect(justinRow).toBeVisible();
     const week7WinsLosses = await justinRow.getByTestId("wins-losses").innerText();
 
@@ -17,14 +18,16 @@ test.describe("Leaderboard: browsing a past week", () => {
     await expect(page).toHaveURL(/week=6/);
     await expect(page.getByRole("main").getByText("Week 6", { exact: true })).toBeVisible();
 
-    const justinRowWeek6 = page.locator('[data-testid="leaderboard-row"]:visible').filter({ hasText: "Justin" }).first();
+    const justinRowWeek6 = page.locator('[data-testid="leaderboard-row"]:visible').filter({ hasText: "jdawnso" }).first();
     await expect(justinRowWeek6).toBeVisible();
     const week6WinsLosses = await justinRowWeek6.getByTestId("wins-losses").innerText();
 
     // Week 6 has settled wagers, Week 7 does not (all still open) — must differ.
     expect(week6WinsLosses).not.toBe(week7WinsLosses);
 
-    // Lower boundary: week 6 is the earliest seeded week.
+    // Lower boundary: week 1 is the earliest week with real matchup data.
+    await page.goto("/leaderboard?scope=week&week=1");
+    await expect(page.getByRole("main").getByText("Week 1", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Previous week" })).toBeDisabled();
   });
 

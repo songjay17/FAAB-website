@@ -1,0 +1,118 @@
+{
+  "season": "2025",
+  "week": "7",
+  "count": "10",
+  "positions": "RB",
+  "players": [
+    {
+      "fpid": 10000,
+      "name": "Chris Rodriguez",
+      "position_id": "RB",
+      "team_id": "JAX",
+      "stats": {
+        "points": 19.2,
+        "points_ppr": 19.2,
+        "points_half": 19.2
+      }
+    },
+    {
+      "fpid": 10001,
+      "name": "Emanuel Wilson",
+      "position_id": "RB",
+      "team_id": "SEA",
+      "stats": {
+        "points": 12.1,
+        "points_ppr": 12.1,
+        "points_half": 12.1
+      }
+    },
+    {
+      "fpid": 10002,
+      "name": "Audric Estime",
+      "position_id": "RB",
+      "team_id": "NO",
+      "stats": {
+        "points": 13.5,
+        "points_ppr": 13.5,
+        "points_half": 13.5
+      }
+    },
+    {
+      "fpid": 10003,
+      "name": "Bucky Irving",
+      "position_id": "RB",
+      "team_id": "TB",
+      "stats": {
+        "points": 19.1,
+        "points_ppr": 19.1,
+        "points_half": 19.1
+      }
+    },
+    {
+      "fpid": 10004,
+      "name": "Blake Corum",
+      "position_id": "RB",
+      "team_id": "LAR",
+      "stats": {
+        "points": 13.5,
+        "points_ppr": 13.5,
+        "points_half": 13.5
+      }
+    },
+    {
+      "fpid": 10005,
+      "name": "Kimani Vidal",
+      "position_id": "RB",
+      "team_id": "LAC",
+      "stats": {
+        "points": 19.3,
+        "points_ppr": 19.3,
+        "points_half": 19.3
+      }
+    },
+    {
+      "fpid": 10006,
+      "name": "Tyrone Tracy",
+      "position_id": "RB",
+      "team_id": "NYG",
+      "stats": {
+        "points": 12.2,
+        "points_ppr": 12.2,
+        "points_half": 12.2
+      }
+    },
+    {
+      "fpid": 10007,
+      "name": "Dylan Sampson",
+      "position_id": "RB",
+      "team_id": "CLE",
+      "stats": {
+        "points": 12.5,
+        "points_ppr": 12.5,
+        "points_half": 12.5
+      }
+    },
+    {
+      "fpid": 10008,
+      "name": "Raheim Sanders",
+      "position_id": "RB",
+      "team_id": "CLE",
+      "stats": {
+        "points": 12.2,
+        "points_ppr": 12.2,
+        "points_half": 12.2
+      }
+    },
+    {
+      "fpid": 10009,
+      "name": "Woody Marks",
+      "position_id": "RB",
+      "team_id": "HOU",
+      "stats": {
+        "points": 17,
+        "points_ppr": 17,
+        "points_half": 17
+      }
+    }
+  ]
+}
