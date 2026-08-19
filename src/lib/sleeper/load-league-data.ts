@@ -1,10 +1,11 @@
 import type { FantasyPlayer, FantasyTeam, League, LeagueMember, WeeklyMatchup } from "@/lib/types";
 import { loadProjectionLookup } from "@/lib/fantasypros/projections-service";
 import { SLEEPER_LEAGUE_ID } from "./config";
-import { fetchMatchups, fetchRosters, fetchUsers } from "./client";
+import { fetchMatchups, fetchNflSchedule, fetchRosters, fetchUsers } from "./client";
 import { getAllPlayers } from "./players-cache";
 import { resolveCurrentLeague } from "./resolve-league";
 import {
+  buildWeekLockTimes,
   computeRecentForm,
   deriveCurrentWeek,
   mapLeague,
@@ -41,11 +42,17 @@ export type LeagueData = {
 export async function loadLeagueData(leagueId: string = SLEEPER_LEAGUE_ID): Promise<LeagueData> {
   const { league: sleeperLeague, nflState, upcomingSeason } = await resolveCurrentLeague(leagueId);
 
-  const [rosters, users, allPlayers] = await Promise.all([
+  const [rosters, users, allPlayers, scheduleGames] = await Promise.all([
     fetchRosters(sleeperLeague.league_id),
     fetchUsers(sleeperLeague.league_id),
     getAllPlayers(),
+    // Undocumented endpoint — if it ever disappears, lock times fall back
+    // to the epoch placeholder rather than taking the whole load down.
+    fetchNflSchedule(Number(sleeperLeague.season)).catch(() => null),
   ]);
+  const lockTimesByWeek = scheduleGames
+    ? buildWeekLockTimes(scheduleGames)
+    : new Map<number, string>();
 
   const currentWeek = deriveCurrentWeek(sleeperLeague, nflState);
   const lastScoredWeek = sleeperLeague.settings.last_scored_leg ?? 0;
@@ -62,9 +69,8 @@ export async function loadLeagueData(leagueId: string = SLEEPER_LEAGUE_ID): Prom
   const matchupsByWeek = new Map<number, WeeklyMatchup[]>();
   for (const week of weekNumbers) {
     const entries = rawMatchupsByWeek.get(week) ?? [];
-    // Placeholder — Sleeper doesn't expose kickoff-based lock times; the
-    // type requires a string.
-    const lockAt = new Date(0).toISOString();
+    // Epoch placeholder only if the schedule lookup failed (see above).
+    const lockAt = lockTimesByWeek.get(week) ?? new Date(0).toISOString();
     matchupsByWeek.set(week, mapMatchups(week, entries, lockAt, week <= lastScoredWeek));
   }
 

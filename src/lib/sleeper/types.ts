@@ -21,6 +21,22 @@ export type SleeperLeague = {
   };
 };
 
+/**
+ * One game from GET /schedule/nfl/regular/{season} — an undocumented (but
+ * long-stable, and the only public) Sleeper source for the real NFL
+ * schedule. Calendar dates only; kickoff times aren't exposed.
+ */
+export type SleeperScheduleGame = {
+  game_id: string;
+  week: number;
+  /** Calendar date of the game, e.g. "2026-09-13". */
+  date: string;
+  /** "pre_game" | "in_game" | "complete" */
+  status: string;
+  home: string;
+  away: string;
+};
+
 /** GET /v1/state/nfl — the live NFL calendar, independent of any league. */
 export type SleeperNflState = {
   /** "pre" | "regular" | "post" | "off" */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { deriveCurrentWeek, mapLeague, mapSeasonPhase } from "../mappers";
-import type { SleeperLeague, SleeperNflState } from "../types";
+import { buildWeekLockTimes, deriveCurrentWeek, mapLeague, mapSeasonPhase } from "../mappers";
+import type { SleeperLeague, SleeperNflState, SleeperScheduleGame } from "../types";
 
 type LeagueOverrides = Omit<Partial<SleeperLeague>, "settings"> & {
   settings?: Partial<SleeperLeague["settings"]>;
@@ -85,6 +85,24 @@ describe("deriveCurrentWeek", () => {
     expect(
       deriveCurrentWeek(league(), nflState({ season: "2026", league_season: "2026", display_week: 1 }))
     ).toBe(7);
+  });
+});
+
+describe("buildWeekLockTimes", () => {
+  function game(week: number, date: string): SleeperScheduleGame {
+    return { game_id: `${week}-${date}`, week, date, status: "pre_game", home: "A", away: "B" };
+  }
+
+  it("locks each week at 13:00 UTC on its earliest game day", () => {
+    const lockTimes = buildWeekLockTimes([
+      game(1, "2026-09-13"),
+      game(1, "2026-09-10"), // Thursday opener, listed out of order
+      game(1, "2026-09-14"),
+      game(2, "2026-09-20"),
+    ]);
+    expect(lockTimes.get(1)).toBe("2026-09-10T13:00:00.000Z");
+    expect(lockTimes.get(2)).toBe("2026-09-20T13:00:00.000Z");
+    expect(lockTimes.get(3)).toBeUndefined();
   });
 });
 
