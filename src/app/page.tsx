@@ -9,6 +9,7 @@ import { FaabBalanceCard } from "@/components/wallet/faab-balance-card";
 import { WagerCard } from "@/components/betting/wager-card";
 import { WagerStatusBadge } from "@/components/betting/wager-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import { SeasonStatusCard } from "@/components/shared/season-status-card";
 import { OddsButton } from "@/components/betting/odds-button";
 import { MarketStatusBadge } from "@/components/betting/market-status-badge";
 import { useBetting } from "@/lib/state/betting-provider";
@@ -49,7 +50,10 @@ export default function DashboardPage() {
 
   const markets = allMarkets.filter((m) => matchups.some((matchup) => matchup.id === m.matchupId));
   const teamById = (id: string) => teams.find((t) => t.id === id);
-  const featured = matchups[0];
+  const inSeason = league.seasonPhase === "in_season";
+  const championName = league.championTeamId ? teamById(league.championTeamId)?.name : undefined;
+  // A featured matchup is a bet prompt — only makes sense while the book is open.
+  const featured = inSeason ? matchups[0] : undefined;
   const featuredMarket = featured ? markets.find((m) => m.matchupId === featured.id) : undefined;
   const openWagers = wagers.filter((w) => w.status === "open").slice(0, 3);
   const recentWagers = wagers.slice(0, 4);
@@ -60,14 +64,22 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">{league.name}</h1>
           <p className="text-sm text-muted-foreground">
-            Week {league.currentWeek} of {league.totalWeeks}
+            {league.seasonPhase === "complete"
+              ? `${league.season} season — complete`
+              : league.seasonPhase === "upcoming"
+                ? `${league.season} season — not started`
+                : `Week ${league.currentWeek} of ${league.totalWeeks}`}
           </p>
         </div>
-        <Button size="lg" render={<Link href="/matchups" />}>
-          View this week&apos;s matchups
-          <ArrowRight className="size-4" />
-        </Button>
+        {league.seasonPhase !== "upcoming" ? (
+          <Button size="lg" render={<Link href="/matchups" />}>
+            {inSeason ? "View this week's matchups" : "Browse season matchups"}
+            <ArrowRight className="size-4" />
+          </Button>
+        ) : null}
       </div>
+
+      <SeasonStatusCard league={league} championName={championName} />
 
       <FaabBalanceCard wallet={wallet} />
 
@@ -141,11 +153,17 @@ export default function DashboardPage() {
               <EmptyState
                 icon={Ticket}
                 title="No open bets"
-                description="Check this week's matchups to place your first bet."
+                description={
+                  inSeason
+                    ? "Check this week's matchups to place your first bet."
+                    : "Betting is closed until the season is live."
+                }
                 action={
-                  <Button size="sm" render={<Link href="/matchups" />}>
-                    Browse matchups
-                  </Button>
+                  inSeason ? (
+                    <Button size="sm" render={<Link href="/matchups" />}>
+                      Browse matchups
+                    </Button>
+                  ) : null
                 }
               />
             ) : (
@@ -191,7 +209,11 @@ export default function DashboardPage() {
         <Card>
           <CardContent>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-semibold">This Week&apos;s Matchups</h2>
+              <h2 className="font-semibold">
+                {league.seasonPhase === "complete"
+                  ? `Week ${league.currentWeek} Final Matchups`
+                  : "This Week's Matchups"}
+              </h2>
               <Button
                 variant="link"
                 size="sm"

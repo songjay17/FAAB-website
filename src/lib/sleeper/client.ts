@@ -1,6 +1,7 @@
 import type {
   SleeperLeague,
   SleeperMatchupEntry,
+  SleeperNflState,
   SleeperPlayersById,
   SleeperRoster,
   SleeperUser,
@@ -40,6 +41,15 @@ export function fetchUsers(leagueId: string): Promise<SleeperUser[]> {
 
 export function fetchMatchups(leagueId: string, week: number): Promise<SleeperMatchupEntry[]> {
   return getJson(`/league/${leagueId}/matchups/${week}`);
+}
+
+export function fetchNflState(): Promise<SleeperNflState> {
+  return getJson(`/state/nfl`);
+}
+
+/** Every league a user is in for one season — full SleeperLeague objects, settings included. */
+export function fetchUserLeagues(userId: string, season: number): Promise<SleeperLeague[]> {
+  return getJson(`/user/${userId}/leagues/nfl/${season}`);
 }
 
 // ~14.6MB, ~12,200 entries — Sleeper's own guidance is to cache this at most

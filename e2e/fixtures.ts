@@ -1,4 +1,4 @@
-import { test as base, expect, type BrowserContext } from "@playwright/test";
+import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -13,7 +13,9 @@ import { join } from "node:path";
 // the frozen mid-season snapshot they were written against: current week 7,
 // weeks 1–6 settled, no real waiver spend. Fixtures are patched to that
 // state by scripts recording them (league.status "in_season",
-// settings.last_scored_leg 7, roster waiver_budget_used 0).
+// settings.last_scored_leg 7, roster waiver_budget_used 0; nfl-state.json
+// frozen to the matching regular-season week 7 — currentWeek now comes from
+// /v1/state/nfl, not last_scored_leg).
 
 const FIXTURES_DIR = join(__dirname, "fixtures");
 
@@ -52,6 +54,14 @@ async function stubLeagueApis(context: BrowserContext) {
     if (pathname === "/v1/players/nfl") {
       return route.fulfill(fixture("players.json"));
     }
+    if (pathname === "/v1/state/nfl") {
+      return route.fulfill(fixture("nfl-state.json"));
+    }
+    // League-rollover successor lookups (resolve-league.ts) — the frozen
+    // in-season league has no successor, so any user-leagues query is empty.
+    if (/^\/v1\/user\/\d+\/leagues\/nfl\/\d+$/.test(pathname)) {
+      return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    }
     // Fail loudly on anything unstubbed rather than silently hitting the
     // live API — the app surfaces the error state and the test fails there.
     return route.fulfill({ status: 500, body: `No fixture for ${pathname}` });
@@ -70,4 +80,4 @@ export const test = base.extend({
   },
 });
 
-export { expect };
+export { expect, type Page };

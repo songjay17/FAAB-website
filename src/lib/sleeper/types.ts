@@ -5,14 +5,35 @@ export type SleeperLeague = {
   league_id: string;
   name: string;
   season: string;
+  /** "pre_draft" | "drafting" | "in_season" | "complete" (open string — Sleeper may add values). */
   status: string;
   previous_league_id: string | null;
   roster_positions: string[];
+  metadata: {
+    /** roster_id (as a string) of the most recent season's champion. */
+    latest_league_winner_roster_id?: string;
+  } | null;
   settings: {
     playoff_week_start: number;
-    last_scored_leg: number;
+    /** Latest week with final scores. null/absent on a league that hasn't played (pre_draft). */
+    last_scored_leg?: number | null;
     waiver_budget: number;
   };
+};
+
+/** GET /v1/state/nfl — the live NFL calendar, independent of any league. */
+export type SleeperNflState = {
+  /** "pre" | "regular" | "post" | "off" */
+  season_type: string;
+  /** The NFL season the state describes (e.g. "2026" during the 2026 preseason). */
+  season: string;
+  /** The season new fantasy leagues are created for — Sleeper's notion of "this year". */
+  league_season: string;
+  /** Week Sleeper's UI displays (during preseason this counts preseason weeks). */
+  display_week: number;
+  /** Current scoring leg of the regular season; 0 outside it. */
+  leg: number;
+  week: number;
 };
 
 export type SleeperRosterSettings = {

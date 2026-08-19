@@ -76,11 +76,19 @@ function MatchupsPageContent() {
       {loading ? (
         <LoadingSkeleton variant="card" count={4} />
       ) : markets.length === 0 ? (
-        <EmptyState
-          icon={Swords}
-          title={`Matchups for Week ${week} haven't been posted yet`}
-          description="Check back once the commissioner opens this week's markets."
-        />
+        league.seasonPhase === "upcoming" ? (
+          <EmptyState
+            icon={Swords}
+            title={`The ${league.season} season hasn't started yet`}
+            description="Matchups and betting markets will appear here once the schedule is live."
+          />
+        ) : (
+          <EmptyState
+            icon={Swords}
+            title={`Matchups for Week ${week} haven't been posted yet`}
+            description="Check back once the commissioner opens this week's markets."
+          />
+        )
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {matchups.map((matchup) => {

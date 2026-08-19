@@ -1,10 +1,12 @@
 import type { FantasyPlayer, FantasyTeam, League, LeagueMember, WeeklyMatchup } from "@/lib/types";
 import { loadProjectionLookup } from "@/lib/fantasypros/projections-service";
-import { SLEEPER_LEAGUE_ID, SLEEPER_SEASON } from "./config";
-import { fetchLeague, fetchMatchups, fetchRosters, fetchUsers } from "./client";
+import { SLEEPER_LEAGUE_ID } from "./config";
+import { fetchMatchups, fetchRosters, fetchUsers } from "./client";
 import { getAllPlayers } from "./players-cache";
+import { resolveCurrentLeague } from "./resolve-league";
 import {
   computeRecentForm,
+  deriveCurrentWeek,
   mapLeague,
   mapMatchups,
   mapMembers,
@@ -31,31 +33,42 @@ export type LeagueData = {
  * inputs came from a live fetch or (later) a database read, which is what
  * lets a future server-side data layer slot in underneath it without
  * touching callers.
+ *
+ * `leagueId` is a starting point, not necessarily the league served:
+ * resolveCurrentLeague follows previous_league_id renewals forward to the
+ * season currently in play.
  */
 export async function loadLeagueData(leagueId: string = SLEEPER_LEAGUE_ID): Promise<LeagueData> {
-  const [sleeperLeague, rosters, users, allPlayers] = await Promise.all([
-    fetchLeague(leagueId),
-    fetchRosters(leagueId),
-    fetchUsers(leagueId),
+  const { league: sleeperLeague, nflState, upcomingSeason } = await resolveCurrentLeague(leagueId);
+
+  const [rosters, users, allPlayers] = await Promise.all([
+    fetchRosters(sleeperLeague.league_id),
+    fetchUsers(sleeperLeague.league_id),
     getAllPlayers(),
   ]);
 
-  const totalWeeks = sleeperLeague.settings.last_scored_leg || 17;
-  const weekNumbers = Array.from({ length: totalWeeks }, (_, i) => i + 1);
+  const currentWeek = deriveCurrentWeek(sleeperLeague, nflState);
+  const lastScoredWeek = sleeperLeague.settings.last_scored_leg ?? 0;
+  // Scored history plus the week being bet on — mid-season that's one week
+  // past last_scored_leg (Sleeper serves future weeks' pairings as scheduled).
+  const totalWeeksToLoad = Math.max(currentWeek, lastScoredWeek);
+  const weekNumbers = Array.from({ length: totalWeeksToLoad }, (_, i) => i + 1);
   const rawMatchupsByWeek = new Map<number, SleeperMatchupEntry[]>();
-  const weeklyEntries = await Promise.all(weekNumbers.map((week) => fetchMatchups(leagueId, week)));
+  const weeklyEntries = await Promise.all(
+    weekNumbers.map((week) => fetchMatchups(sleeperLeague.league_id, week))
+  );
   weekNumbers.forEach((week, i) => rawMatchupsByWeek.set(week, weeklyEntries[i]));
 
   const matchupsByWeek = new Map<number, WeeklyMatchup[]>();
   for (const week of weekNumbers) {
     const entries = rawMatchupsByWeek.get(week) ?? [];
-    // Placeholder — this completed season has no real lock times to fetch;
-    // the type requires a string.
+    // Placeholder — Sleeper doesn't expose kickoff-based lock times; the
+    // type requires a string.
     const lockAt = new Date(0).toISOString();
-    matchupsByWeek.set(week, mapMatchups(week, entries, lockAt));
+    matchupsByWeek.set(week, mapMatchups(week, entries, lockAt, week <= lastScoredWeek));
   }
 
-  const projectionLookup = await loadProjectionLookup(SLEEPER_SEASON, totalWeeks);
+  const projectionLookup = await loadProjectionLookup(Number(sleeperLeague.season), currentWeek);
 
   const playersByTeam: Record<string, FantasyPlayer[]> = {};
   for (const roster of rosters) {
@@ -70,12 +83,12 @@ export async function loadLeagueData(leagueId: string = SLEEPER_LEAGUE_ID): Prom
     const rosterId = Number(team.id.replace("roster-", ""));
     return {
       ...team,
-      recentForm: computeRecentForm(rosterId, rawMatchupsByWeek, totalWeeks).slice(-5),
+      recentForm: computeRecentForm(rosterId, rawMatchupsByWeek, lastScoredWeek).slice(-5),
     };
   });
 
   return {
-    league: mapLeague(sleeperLeague),
+    league: mapLeague(sleeperLeague, currentWeek, upcomingSeason),
     members: mapMembers(users, rosters),
     teams,
     matchupsByWeek,
