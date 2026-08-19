@@ -3,11 +3,13 @@ import type {
   SleeperMatchupEntry,
   SleeperNflState,
   SleeperPlayersById,
+  SleeperScheduleGame,
   SleeperRoster,
   SleeperUser,
 } from "./types";
 
-const BASE_URL = "https://api.sleeper.app/v1";
+const ORIGIN = "https://api.sleeper.app";
+const BASE_URL = `${ORIGIN}/v1`;
 
 export class SleeperApiError extends Error {
   constructor(
@@ -45,6 +47,22 @@ export function fetchMatchups(leagueId: string, week: number): Promise<SleeperMa
 
 export function fetchNflState(): Promise<SleeperNflState> {
   return getJson(`/state/nfl`);
+}
+
+/**
+ * The real NFL regular-season schedule (game dates, no kickoff times). Not
+ * under /v1 like everything else — this endpoint is undocumented, so callers
+ * must treat a failure here as expected and degrade gracefully.
+ */
+export async function fetchNflSchedule(season: number): Promise<SleeperScheduleGame[]> {
+  const res = await fetch(`${ORIGIN}/schedule/nfl/regular/${season}`);
+  if (!res.ok) {
+    throw new SleeperApiError(
+      `Sleeper request failed: /schedule/nfl/regular/${season} (${res.status})`,
+      res.status
+    );
+  }
+  return res.json() as Promise<SleeperScheduleGame[]>;
 }
 
 /** Every league a user is in for one season — full SleeperLeague objects, settings included. */

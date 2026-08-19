@@ -23,7 +23,9 @@ function projectionToMoneylines(homePts: number, awayPts: number): Odds {
   return {
     homeMoneyline: toMoneyline(homeImplied),
     awayMoneyline: toMoneyline(awayImplied),
-    updatedAt: new Date(0).toISOString(),
+    // When this line was priced — markets persist to localStorage and are
+    // never re-priced (the odds snapshot), so this marks the snapshot time.
+    updatedAt: new Date().toISOString(),
   };
 }
 
