@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
 import { readBook, resetBook } from "@/lib/server/book";
-import { asString, jsonError } from "@/lib/server/api";
-import { getLeagueDataCached } from "@/lib/server/league-data-cache";
+import { jsonError } from "@/lib/server/api";
+import { guard, isResponse } from "@/lib/server/guard";
 
-/** Wipes and reseeds the league's book (the old "Reset demo data" control). Audit history is kept. */
-export async function POST(request: Request) {
+/** Wipes and reseeds the league's book. Commissioner-only; audit history is kept. */
+export async function POST() {
   try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const memberId = asString(body.memberId);
-    if (!memberId) {
-      return jsonError("memberId is required.", 400);
-    }
+    const guarded = await guard({ commissioner: true });
+    if (isResponse(guarded)) return guarded;
+    const { data, session } = guarded;
 
-    const data = await getLeagueDataCached();
-    await resetBook(data, memberId);
+    await resetBook(data, session.memberId);
     return NextResponse.json({ book: await readBook(data.league.id) });
   } catch (err) {
     return jsonError(err);

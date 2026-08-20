@@ -109,6 +109,10 @@ export function mapMembers(users: SleeperUser[], rosters: SleeperRoster[]): Leag
         id: roster.owner_id!,
         displayName: user?.display_name ?? `Team ${roster.roster_id}`,
         teamId: `roster-${roster.roster_id}`,
+        // Sleeper's league owner is this app's commissioner — the source of
+        // truth for who may void/settle/lock (copied into member_auth at
+        // claim time so authorization never needs a live API call).
+        isCommissioner: user?.is_owner === true,
       } satisfies LeagueMember;
     });
 }

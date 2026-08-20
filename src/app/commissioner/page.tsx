@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Pause,
-  RefreshCw,
-  Coins,
-  Undo2,
-  ClipboardList,
-  Lock,
-  Trophy,
-} from "lucide-react";
+import { KeyRound, Lock, ShieldAlert, Trophy, Undo2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -24,130 +16,83 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { CommissionerActionCard } from "@/components/commissioner/commissioner-action-card";
+import { AuditLogCard } from "@/components/commissioner/audit-log-card";
+import { ResetPinCard } from "@/components/commissioner/reset-pin-card";
 import { SettleWeekCard } from "@/components/commissioner/settle-week-card";
 import { VoidWagerCard } from "@/components/commissioner/void-wager-card";
 import { ManageMarketsCard } from "@/components/commissioner/manage-markets-card";
 import { useBetting } from "@/lib/state/betting-provider";
+import { useSession } from "@/lib/state/session-provider";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 
-const seedAuditLog = [
-  {
-    id: "log-1",
-    text: "Justin adjusted Ravi's FAAB from 585 to 615 — reason: waiver correction.",
-    time: "Jul 20, 9:14 AM",
-  },
-  {
-    id: "log-2",
-    text: "Justin voided Sam's $20 bet on Week 6 Diggs My Grave vs Gibbs Me Liberty — reason: incorrect lineup lock.",
-    time: "Jul 19, 6:02 PM",
-  },
-  {
-    id: "log-3",
-    text: "Justin opened betting markets for Week 7.",
-    time: "Jul 18, 8:00 AM",
-  },
-  {
-    id: "log-4",
-    text: "Justin updated odds for Hurts So Good vs Bijan Mustard after lineup projections refreshed.",
-    time: "Jul 17, 11:30 AM",
-  },
-];
-
 export default function CommissionerPage() {
-  const [betsPaused, setBetsPaused] = useState(false);
-  const [liveAuditLog, setLiveAuditLog] = useState<{ id: string; text: string; time: string }[]>([]);
-  const { resetDemoData } = useBetting();
+  const { resetDemoData, allWagers } = useBetting();
   const { league } = useSleeperData();
-  const auditLog = [...liveAuditLog, ...seedAuditLog];
+  const { session } = useSession();
+  // Bumped after any commissioner action so the audit trail refetches.
+  const [auditKey, setAuditKey] = useState(0);
 
-  function logVoid(summary: string) {
-    setLiveAuditLog((prev) => [
-      {
-        id: `live-${Date.now()}`,
-        text: summary,
-        time: new Date().toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      },
-      ...prev,
-    ]);
+  // The server enforces this on every commissioner route (403 without the
+  // flag); hiding the tools is just so non-commissioners aren't shown
+  // controls that would fail.
+  if (!session.isCommissioner) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Commissioner Tools" description={league.name} />
+        <Card>
+          <CardContent>
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <ShieldAlert className="size-8 text-muted-foreground" />
+              <p className="font-medium">These tools are commissioner-only</p>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Voiding wagers, settling weeks, and locking markets are restricted to the
+                league commissioner.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Commissioner Tools"
-        description={`Frontend preview only — no changes here affect live data for ${league.name}.`}
+        description={`League-wide actions for ${league.name} — every action below is recorded in the audit trail.`}
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <CommissionerActionCard
-          icon={Pause}
-          title={betsPaused ? "Resume all betting" : "Pause all betting"}
-          description="Temporarily stop new bets league-wide, e.g. during a lineup dispute."
-          actionLabel={betsPaused ? "Resume Betting" : "Pause Betting"}
-          onAction={() => setBetsPaused((v) => !v)}
-        />
-        <CommissionerActionCard
-          icon={RefreshCw}
-          title="Update mock odds"
-          description="Recalculate moneylines from the latest projected lineups."
-          actionLabel="Refresh Odds"
-        />
-        <CommissionerActionCard
-          icon={Coins}
-          title="Adjust a member's FAAB"
-          description="Correct a member's balance. A reason is required and logged below."
-          actionLabel="Adjust FAAB"
-        />
-        <VoidWagerCard icon={Undo2} onVoided={logVoid} />
-        <CommissionerActionCard
-          icon={ClipboardList}
-          title="Review all wagers"
-          description="See every open and settled bet across the league."
-          actionLabel="View Wagers"
-        />
-        <ManageMarketsCard icon={Lock} />
-        <SettleWeekCard icon={Trophy} />
+        <VoidWagerCard icon={Undo2} onVoided={() => setAuditKey((k) => k + 1)} />
+        <ManageMarketsCard icon={Lock} onChanged={() => setAuditKey((k) => k + 1)} />
+        <SettleWeekCard icon={Trophy} onSettled={() => setAuditKey((k) => k + 1)} />
+        <ResetPinCard icon={KeyRound} />
       </div>
 
-      <Card>
-        <CardContent>
-          <h2 className="mb-3 font-semibold">Audit Activity</h2>
-          <ul className="space-y-3 text-sm">
-            {auditLog.map((entry) => (
-              <li key={entry.id} className="flex flex-col gap-0.5 border-b border-border/60 pb-3 last:border-0">
-                <span className="text-foreground">{entry.text}</span>
-                <span className="text-xs text-muted-foreground">{entry.time}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <AuditLogCard refreshKey={`${auditKey}-${allWagers.length}`} />
 
       <AlertDialog>
         <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>
-          Reset demo data
+          Reset the league book
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset all demo data?</AlertDialogTitle>
+            <AlertDialogTitle>Reset the league book?</AlertDialogTitle>
             <AlertDialogDescription>
-              This clears your locally saved wallet and bet history and restores the seed
-              data, so you can re-run the demo flow from a clean state.
+              This clears every member&apos;s wallet and wager history league-wide and
+              reseeds from the current Sleeper data. Audit history is kept. This cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                resetDemoData().catch(() => {
-                  // Book state refetches on focus; a failed reset leaves the book unchanged.
-                });
+                resetDemoData()
+                  .then(() => setAuditKey((k) => k + 1))
+                  .catch(() => {
+                    // Book state refetches on focus; a failed reset leaves the book unchanged.
+                  });
               }}
             >
               Reset

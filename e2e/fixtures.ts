@@ -49,6 +49,15 @@ const RECORDED_WEEKS = 7;
 
 const LEAGUE_ID = "1230632258184957952";
 
+// Specs run as the league's real commissioner (jdawnso, Sleeper is_owner) —
+// they exercise both member flows (place/cancel) and commissioner flows
+// (void/settle/lock), and the server gates the latter on this flag. The
+// /api/auth/session stub below reports this identity as already signed in,
+// so specs don't each have to walk the claim/login screen; sign-in itself
+// is covered by its own spec (e2e/sign-in.spec.ts) which overrides these
+// routes.
+const SESSION_MEMBER_ID = "975162996680945664";
+
 function readJson<T>(name: string): T {
   return JSON.parse(readFileSync(join(FIXTURES_DIR, name), "utf-8")) as T;
 }
@@ -107,11 +116,23 @@ function highestReference(wagers: Wager[]): number {
   }, 1000);
 }
 
+type StubAuditEntry = {
+  id: string;
+  actor: string;
+  action: string;
+  subject: string | null;
+  reason: string | null;
+  createdAt: string;
+};
+
+const users = readJson<Array<{ user_id: string; display_name: string }>>("users.json");
+
 /** In-memory stand-in for the server book (src/lib/server/book.ts) — same rules, no database. */
 class StubBook {
   wallets: FaabWallet[] = [];
   wagers: Wager[] = [];
   markets: BettingMarket[] = [];
+  private audit: StubAuditEntry[] = [];
   private nextReference = 1001;
   private nextId = 1;
 
@@ -123,7 +144,34 @@ class StubBook {
     this.wallets = structuredClone(mockWallets);
     this.wagers = structuredClone(mockWagers);
     this.markets = structuredClone(baseMarkets);
+    this.audit = [];
     this.nextReference = highestReference(this.wagers) + 1;
+  }
+
+  /** Mirrors the server's audit_log writes for commissioner actions. */
+  private log(action: string, subject: string | null, reason: string | null = null) {
+    this.audit.unshift({
+      id: `stub-audit-${this.audit.length + 1}`,
+      actor: users.find((u) => u.user_id === SESSION_MEMBER_ID)?.display_name ?? SESSION_MEMBER_ID,
+      action,
+      subject,
+      reason,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  auditEntries(): StubAuditEntry[] {
+    return this.audit;
+  }
+
+  /** Every member counts as claimed — specs run against an established league. */
+  memberClaims() {
+    return this.wallets.map((wallet) => ({
+      memberId: wallet.memberId,
+      displayName:
+        users.find((u) => u.user_id === wallet.memberId)?.display_name ?? wallet.memberId,
+      claimed: true,
+    }));
   }
 
   book(): Book {
@@ -209,7 +257,9 @@ class StubBook {
     if (wager.status !== "open") {
       return { ok: false, error: "Only open wagers can be voided." };
     }
-    return this.applyVoid(wager);
+    const result = this.applyVoid(wager);
+    if (result.ok) this.log("void-wager", wager.reference, reason.trim());
+    return result;
   }
 
   private applyVoid(wager: Wager): { ok: true } | { ok: false; error: string } {
@@ -259,6 +309,7 @@ class StubBook {
         }
       }
     }
+    if (aggregate.processed > 0) this.log("settle-week", `week-${week}`);
     return aggregate;
   }
 
@@ -266,6 +317,7 @@ class StubBook {
     const market = this.markets.find((m) => m.matchupId === matchupId);
     if (!market) return { ok: false, error: "Market not found." };
     market.status = status;
+    this.log(`market-${status}`, matchupId);
     return { ok: true };
   }
 }
@@ -323,6 +375,19 @@ async function stubLeagueApis(context: BrowserContext, book: StubBook) {
     if (pathname === "/api/projections") {
       return route.fulfill(fixture(`projections-${searchParams.get("position")}.json`));
     }
+    if (pathname === "/api/auth/session") {
+      if (method === "DELETE") return json({ ok: true });
+      return json({
+        session: { leagueId: LEAGUE_ID, memberId: SESSION_MEMBER_ID, isCommissioner: true },
+        members: book.memberClaims(),
+      });
+    }
+    if (pathname === "/api/commissioner/audit" && method === "GET") {
+      return json({ entries: book.auditEntries() });
+    }
+    if (pathname === "/api/commissioner/reset-pin" && method === "POST") {
+      return json({ members: book.memberClaims() });
+    }
     if (pathname === "/api/book" && method === "GET") {
       return json(book.book());
     }
@@ -333,7 +398,9 @@ async function stubLeagueApis(context: BrowserContext, book: StubBook) {
     if (pathname === "/api/wagers" && method === "POST") {
       const b = body();
       const result = book.place({
-        memberId: String(b.memberId),
+        // Actor comes from the session, never the request body — mirrors the
+        // server, which derives it from the signed cookie.
+        memberId: SESSION_MEMBER_ID,
         marketId: String(b.marketId),
         selectedTeamId: String(b.selectedTeamId),
         stakeFaab: Number(b.stakeFaab),
@@ -344,7 +411,7 @@ async function stubLeagueApis(context: BrowserContext, book: StubBook) {
     }
     const cancelMatch = pathname.match(/^\/api\/wagers\/([^/]+)\/cancel$/);
     if (cancelMatch && method === "POST") {
-      const result = book.cancel(String(body().memberId), cancelMatch[1]);
+      const result = book.cancel(SESSION_MEMBER_ID, cancelMatch[1]);
       return result.ok ? json({ book: book.book() }) : json({ error: result.error }, 400);
     }
     if (pathname === "/api/commissioner/void" && method === "POST") {
@@ -354,7 +421,7 @@ async function stubLeagueApis(context: BrowserContext, book: StubBook) {
     }
     if (pathname === "/api/commissioner/settle" && method === "POST") {
       const b = body();
-      const result = book.settle(String(b.memberId), Number(b.week));
+      const result = book.settle(SESSION_MEMBER_ID, Number(b.week));
       return json({ result, book: book.book() });
     }
     if (pathname === "/api/commissioner/market-status" && method === "POST") {
