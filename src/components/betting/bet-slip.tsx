@@ -20,6 +20,7 @@ import {
 } from "@/lib/odds";
 import { useBetting } from "@/lib/state/betting-provider";
 import { BetReceipt } from "./bet-receipt";
+import { MarketLockTimer } from "./market-lock-timer";
 import type { BettingMarket, FantasyTeam, Wager } from "@/lib/types";
 
 export type BetSlipSelection = {
@@ -172,11 +173,7 @@ function BetSlipForm({
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Market locks</span>
                 <span className="text-xs text-foreground">
-                  {new Intl.DateTimeFormat("en-US", {
-                    weekday: "short",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  }).format(new Date(selection.lockAt))}
+                  <MarketLockTimer market={selection.market} />
                 </span>
               </div>
             </div>

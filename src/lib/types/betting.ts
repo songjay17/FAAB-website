@@ -13,6 +13,13 @@ export type BettingMarket = {
   odds: Odds;
   totalFaabHome: number;
   totalFaabAway: number;
+  /**
+   * Betting deadline for this market (the week's first kickoff). Absent
+   * when the NFL schedule lookup found no date — such a market has no
+   * clock-based deadline. `status` already reflects the clock as served
+   * (see effectiveMarketStatus); this is here so the UI can count down.
+   */
+  lockAt?: string;
 };
 
 export type WagerStatus = "open" | "won" | "lost" | "refunded";

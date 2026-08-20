@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Clock, Users } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OddsButton } from "@/components/betting/odds-button";
 import { MarketStatusBadge } from "@/components/betting/market-status-badge";
+import { MarketLockTimer } from "@/components/betting/market-lock-timer";
 import { ProjectionComparison } from "@/components/matchups/projection-comparison";
 import { OptimalLineupTable } from "@/components/matchups/optimal-lineup-table";
 import { BetSlip, type BetSlipSelection } from "@/components/betting/bet-slip";
@@ -18,14 +19,6 @@ import { formatFaab, formatPercent, impliedProbability } from "@/lib/odds";
 import { getMatchupById, getProjectedLineup } from "@/lib/services/matchup-service";
 import { getTeamById } from "@/lib/services/team-service";
 import type { FantasyTeam, ProjectedLineup, WeeklyMatchup } from "@/lib/types";
-
-function formatLockTime(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 export default function MatchupDetailPage() {
   const { matchupId } = useParams<{ matchupId: string }>();
@@ -169,10 +162,7 @@ export default function MatchupDetailPage() {
                 <Users className="size-3" />
                 Pool: {formatFaab(market.totalFaabHome)} / {formatFaab(market.totalFaabAway)} FAAB
               </span>
-              <span className="flex items-center gap-1">
-                <Clock className="size-3" />
-                Locks {formatLockTime(matchup.lockAt)}
-              </span>
+              <MarketLockTimer market={market} verbose />
             </div>
 
             <div className="flex items-center justify-between text-xs text-muted-foreground">

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { WAGER_REFERENCE_PREFIX, SELF_CANCEL_WINDOW_MS } from "../src/lib/betting-constants";
 import { calculatePayout, calculateProfit } from "../src/lib/odds";
+import { effectiveMarketStatus, isPastLockTime } from "../src/lib/market-lock";
 import { mockWallets } from "../src/lib/mock-data/wallets";
 import { mockWagers } from "../src/lib/mock-data/wagers";
 import { generateMarkets } from "../src/lib/state/generate-markets";
@@ -97,14 +98,25 @@ for (const roster of rosters) {
   );
 }
 
+// The recorded 2025 schedule is in the past, which would auto-lock every
+// market and break the betting specs. The frozen snapshot is "mid-week 7,
+// betting open", so lock times are rebased into the future — far enough out
+// that the UI shows a date rather than a countdown, keeping assertions
+// stable. lock-timing.spec.ts overrides this per-test to exercise the
+// deadline itself.
+const STUB_LOCK_AT = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
 const allMatchups: WeeklyMatchup[] = [];
 for (let week = 1; week <= RECORDED_WEEKS; week++) {
   const entries = readJson<SleeperMatchupEntry[]>(`matchups-${week}.json`);
-  allMatchups.push(...mapMatchups(week, entries, new Date(0).toISOString(), true));
+  allMatchups.push(...mapMatchups(week, entries, STUB_LOCK_AT, true));
 }
 const matchupById = new Map(allMatchups.map((m) => [m.id, m]));
 
-const baseMarkets = generateMarkets(allMatchups, playersByTeam);
+const baseMarkets = generateMarkets(allMatchups, playersByTeam).map((market) => ({
+  ...market,
+  lockAt: STUB_LOCK_AT,
+}));
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -164,6 +176,14 @@ class StubBook {
     return this.audit;
   }
 
+  /** Moves one matchup's betting deadline (and optionally its stored status) — see lock-timing.spec.ts. */
+  setLockAt(matchupId: string, lockAt: string, status?: MarketStatus) {
+    const market = this.markets.find((m) => m.matchupId === matchupId);
+    if (!market) throw new Error(`No stub market for matchup ${matchupId}`);
+    market.lockAt = lockAt;
+    if (status) market.status = status;
+  }
+
   /** Every member counts as claimed — specs run against an established league. */
   memberClaims() {
     return this.wallets.map((wallet) => ({
@@ -179,7 +199,12 @@ class StubBook {
       leagueId: LEAGUE_ID,
       wallets: this.wallets,
       wagers: this.wagers,
-      markets: this.markets,
+      // The clock is applied as the book is served, mirroring toMarket on
+      // the server: a market past its deadline reads as locked.
+      markets: this.markets.map((m) => ({
+        ...m,
+        status: effectiveMarketStatus(m.status, m.lockAt),
+      })),
     };
   }
 
@@ -193,6 +218,13 @@ class StubBook {
     if (!market) return { ok: false, error: "Market not found." };
     if (market.status !== "open") {
       return { ok: false, error: "This market is no longer accepting bets." };
+    }
+    // Mirrors the server's in-transaction deadline check.
+    if (isPastLockTime(market.lockAt)) {
+      return {
+        ok: false,
+        error: "Betting for this matchup closed when the week's games kicked off.",
+      };
     }
     const matchup = matchupById.get(market.matchupId);
     if (
@@ -433,11 +465,17 @@ async function stubLeagueApis(context: BrowserContext, book: StubBook) {
   });
 }
 
-export const test = base.extend({
-  context: async ({ context }, use) => {
-    await stubLeagueApis(context, new StubBook());
+export const test = base.extend<{ book: StubBook }>({
+  // Exposed so a spec can adjust the book before/while it drives the UI —
+  // e.g. lock-timing.spec.ts moves a market's deadline around. Most specs
+  // never touch it and just get the seeded state.
+  book: async ({}, use) => {
+    await use(new StubBook());
+  },
+  context: async ({ context, book }, use) => {
+    await stubLeagueApis(context, book);
     await use(context);
   },
 });
 
-export { expect, type Page };
+export { expect, type Page, StubBook };

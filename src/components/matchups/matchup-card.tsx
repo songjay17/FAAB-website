@@ -1,23 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OddsButton } from "@/components/betting/odds-button";
 import { MarketStatusBadge } from "@/components/betting/market-status-badge";
 import { TeamSummary } from "./team-summary";
+import { MarketLockTimer } from "@/components/betting/market-lock-timer";
 import { impliedProbability, formatFaab } from "@/lib/odds";
 import { useBetting } from "@/lib/state/betting-provider";
 import type { BettingMarket, FantasyTeam, LeagueMember, WeeklyMatchup } from "@/lib/types";
-
-function formatLockTime(iso: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 export function MatchupCard({
   matchup,
@@ -55,8 +47,7 @@ export function MatchupCard({
       <div className="flex items-center justify-between">
         <MarketStatusBadge status={market.status} />
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="size-3" />
-          Locks {formatLockTime(matchup.lockAt)}
+          <MarketLockTimer market={market} />
         </div>
       </div>
 
