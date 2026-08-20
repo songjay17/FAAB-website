@@ -51,9 +51,9 @@ export function VoidWagerCard({
     setError(null);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (!selectedWagerId) return;
-    const result = voidWager(selectedWagerId, reason);
+    const result = await voidWager(selectedWagerId, reason);
     if (!result.ok) {
       setError(result.error);
       return;

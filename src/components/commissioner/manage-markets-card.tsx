@@ -90,7 +90,12 @@ export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        setMarketStatus(market.matchupId, market.status === "open" ? "locked" : "open")
+                        setMarketStatus(
+                          market.matchupId,
+                          market.status === "open" ? "locked" : "open"
+                        ).catch(() => {
+                          // Book state refetches on focus; a failed toggle just leaves the badge unchanged.
+                        })
                       }
                     >
                       {market.status === "open" ? "Lock" : "Reopen"}

@@ -67,6 +67,7 @@ function BetSlipForm({
   const { wallet, placeWager } = useBetting();
   const [stakeInput, setStakeInput] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmedWager, setConfirmedWager] = useState<Wager | null>(null);
 
   const stake = Number(stakeInput);
@@ -77,23 +78,20 @@ function BetSlipForm({
     : null;
   const isLocked = selection.market.status !== "open";
 
-  function handleConfirm() {
-    if (!hasValidStake || !selection || isLocked) return;
+  async function handleConfirm() {
+    if (!hasValidStake || !selection || isLocked || confirming) return;
     setConfirming(true);
-    // Brief simulated-processing delay so confirmation feels like a real
-    // transaction rather than an instant no-op click.
-    setTimeout(() => {
-      const wager = placeWager(
-        selection.market,
-        selection.team.id,
-        selection.opponentTeam.id,
-        selection.week,
-        selection.moneyline,
-        stake
-      );
-      setConfirmedWager(wager);
-      setConfirming(false);
-    }, 450);
+    setSubmitError(null);
+    // The server is the book now — it re-validates the market, prices the
+    // bet off the stored line, and can refuse (market just locked, stake
+    // over budget) even when this form looked fine.
+    const result = await placeWager(selection.market, selection.team.id, stake);
+    setConfirming(false);
+    if (result.ok) {
+      setConfirmedWager(result.wager);
+    } else {
+      setSubmitError(result.error);
+    }
   }
 
   if (confirmedWager) {
@@ -187,6 +185,9 @@ function BetSlipForm({
       </div>
 
       <SheetFooter>
+        {submitError ? (
+          <p className="text-center text-xs text-destructive">{submitError}</p>
+        ) : null}
         <Button
           size="lg"
           disabled={!hasValidStake || isLocked || confirming}

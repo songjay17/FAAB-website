@@ -37,11 +37,17 @@ export function SettleWeekCard({ icon: Icon }: { icon: LucideIcon }) {
   const week = openWeeks[0];
   const eligibleCount = allWagers.filter((w) => w.status === "open" && w.week === week).length;
 
-  function handleSettle() {
+  async function handleSettle() {
     if (week === undefined || settling) return;
     setSettling(true);
-    setResult(settleWeek(week));
-    setSettling(false);
+    try {
+      setResult(await settleWeek(week));
+    } catch {
+      // The book refetches on focus; a failed settle leaves everything open
+      // and the button re-enabled to try again.
+    } finally {
+      setSettling(false);
+    }
   }
 
   return (

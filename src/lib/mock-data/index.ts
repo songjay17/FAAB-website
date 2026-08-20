@@ -1,8 +1,8 @@
 export * from "./wallets";
 export * from "./wagers";
 
-// The Sleeper league the mock wallets/wagers were authored against — their
-// wager matchup ids, stakes, and P/L only make sense on that league's real
-// 2025 matchups. Any other league (e.g. a season rollover's successor)
-// seeds fresh empty wallets instead of this demo state.
-export const MOCK_SEED_LEAGUE_ID = "1230632258184957952";
+// These hand-authored demo wallets/wagers no longer seed the app — the book
+// lives server-side in Postgres and bootstraps fresh, full-budget wallets
+// (see src/lib/server/book.ts). They remain as the seed state for the e2e
+// suite's in-memory book stub (e2e/fixtures.ts), which is why their wager
+// matchup ids still align with the recorded 2025 fixtures.
