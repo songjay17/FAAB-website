@@ -1,26 +1,57 @@
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { WAGER_REFERENCE_PREFIX, SELF_CANCEL_WINDOW_MS } from "../src/lib/betting-constants";
+import { calculatePayout, calculateProfit } from "../src/lib/odds";
+import { mockWallets } from "../src/lib/mock-data/wallets";
+import { mockWagers } from "../src/lib/mock-data/wagers";
+import { generateMarkets } from "../src/lib/state/generate-markets";
+import {
+  settleWagersForWeek,
+  voidWager as voidWagerPure,
+  type SettlementResult,
+} from "../src/lib/state/settlement";
+import { buildProjectionLookup, type ProjectionLookup } from "../src/lib/fantasypros/mappers";
+import { mapMatchups, mapRosterPlayers } from "../src/lib/sleeper/mappers";
+import type {
+  BettingMarket,
+  Book,
+  FaabWallet,
+  FantasyPlayer,
+  MarketStatus,
+  Wager,
+  WeeklyMatchup,
+} from "../src/lib/types";
+import type { SleeperMatchupEntry, SleeperPlayersById, SleeperRoster } from "../src/lib/sleeper/types";
 
 // Every spec imports { test, expect } from "./fixtures" instead of
-// "@playwright/test": the extended `test` intercepts all Sleeper API and
-// /api/projections traffic and serves recorded JSON from e2e/fixtures/.
+// "@playwright/test". The extended `test` intercepts two kinds of traffic:
 //
-// The app loads live league data in the browser on every page load (see
-// SleeperDataProvider), so without this the suite's assertions drift with
-// the real league — the recorded 2025 season is now complete
-// (last_scored_leg 17, FAAB budgets fully spent), while these tests need
-// the frozen mid-season snapshot they were written against: current week 7,
-// weeks 1–6 settled, no real waiver spend. Fixtures are patched to that
-// state by scripts recording them (league.status "in_season",
-// settings.last_scored_leg 7, roster waiver_budget_used 0; nfl-state.json
-// frozen to the matching regular-season week 7 — currentWeek now comes from
-// /v1/state/nfl, not last_scored_leg).
+// 1. Sleeper API + /api/projections — served from recorded JSON in
+//    e2e/fixtures/, patched to a frozen mid-season snapshot (current week 7,
+//    weeks 1–6 settled, zero real waiver spend, nfl-state pinned to
+//    regular-season week 7). The browser still loads league/team/matchup
+//    data itself (SleeperDataProvider), so these stubs keep that
+//    deterministic.
+//
+// 2. The app's own book API (/api/book, /api/wagers, /api/commissioner/*) —
+//    the book lives server-side in Postgres now, so each test context gets a
+//    StubBook: an in-memory engine seeded with the old demo wallets/wagers
+//    and markets priced by the real pricing code from the same fixtures. It
+//    mirrors the server's validation and settlement (same pure functions),
+//    so specs exercise the UI against realistic API behavior with no
+//    database involved.
 
 const FIXTURES_DIR = join(__dirname, "fixtures");
 
 /** Weeks with a recorded matchups fixture — matches last_scored_leg in league.json. */
 const RECORDED_WEEKS = 7;
+
+const LEAGUE_ID = "1230632258184957952";
+
+function readJson<T>(name: string): T {
+  return JSON.parse(readFileSync(join(FIXTURES_DIR, name), "utf-8")) as T;
+}
 
 function fixture(name: string) {
   return {
@@ -30,7 +61,218 @@ function fixture(name: string) {
   };
 }
 
-async function stubLeagueApis(context: BrowserContext) {
+// ---------------------------------------------------------------------------
+// Build the frozen league's matchups + market lines once, from the same
+// fixtures the browser sees, using the app's real mapping/pricing code — so
+// the stub's odds are exactly what the client-side book used to compute.
+
+const rosters = readJson<SleeperRoster[]>("rosters.json");
+const allPlayers = readJson<SleeperPlayersById>("players.json");
+
+const projectionLookup: ProjectionLookup = new Map();
+for (const position of ["QB", "RB", "WR", "TE", "K", "DST"]) {
+  const response = readJson<{ players: Parameters<typeof buildProjectionLookup>[0] }>(
+    `projections-${position}.json`
+  );
+  for (const [key, points] of buildProjectionLookup(response.players)) {
+    projectionLookup.set(key, points);
+  }
+}
+
+const playersByTeam: Record<string, FantasyPlayer[]> = {};
+for (const roster of rosters) {
+  playersByTeam[`roster-${roster.roster_id}`] = mapRosterPlayers(
+    roster,
+    allPlayers,
+    projectionLookup
+  );
+}
+
+const allMatchups: WeeklyMatchup[] = [];
+for (let week = 1; week <= RECORDED_WEEKS; week++) {
+  const entries = readJson<SleeperMatchupEntry[]>(`matchups-${week}.json`);
+  allMatchups.push(...mapMatchups(week, entries, new Date(0).toISOString(), true));
+}
+const matchupById = new Map(allMatchups.map((m) => [m.id, m]));
+
+const baseMarkets = generateMarkets(allMatchups, playersByTeam);
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+function highestReference(wagers: Wager[]): number {
+  return wagers.reduce((max, w) => {
+    if (!w.reference.startsWith(WAGER_REFERENCE_PREFIX)) return max;
+    const n = Number(w.reference.slice(WAGER_REFERENCE_PREFIX.length));
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 1000);
+}
+
+/** In-memory stand-in for the server book (src/lib/server/book.ts) — same rules, no database. */
+class StubBook {
+  wallets: FaabWallet[] = [];
+  wagers: Wager[] = [];
+  markets: BettingMarket[] = [];
+  private nextReference = 1001;
+  private nextId = 1;
+
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.wallets = structuredClone(mockWallets);
+    this.wagers = structuredClone(mockWagers);
+    this.markets = structuredClone(baseMarkets);
+    this.nextReference = highestReference(this.wagers) + 1;
+  }
+
+  book(): Book {
+    return {
+      leagueId: LEAGUE_ID,
+      wallets: this.wallets,
+      wagers: this.wagers,
+      markets: this.markets,
+    };
+  }
+
+  place(input: {
+    memberId: string;
+    marketId: string;
+    selectedTeamId: string;
+    stakeFaab: number;
+  }): { ok: true; wager: Wager } | { ok: false; error: string } {
+    const market = this.markets.find((m) => m.id === input.marketId);
+    if (!market) return { ok: false, error: "Market not found." };
+    if (market.status !== "open") {
+      return { ok: false, error: "This market is no longer accepting bets." };
+    }
+    const matchup = matchupById.get(market.matchupId);
+    if (
+      !matchup ||
+      (input.selectedTeamId !== matchup.homeTeamId && input.selectedTeamId !== matchup.awayTeamId)
+    ) {
+      return { ok: false, error: "Selected team is not part of this matchup." };
+    }
+    const stake = round2(input.stakeFaab);
+    if (!Number.isFinite(stake) || stake <= 0) {
+      return { ok: false, error: "Stake must be a positive FAAB amount." };
+    }
+    const wallet = this.wallets.find((w) => w.memberId === input.memberId);
+    if (!wallet) return { ok: false, error: "Member wallet not found." };
+    if (stake > wallet.availableFaab) {
+      return { ok: false, error: "Stake exceeds available FAAB." };
+    }
+
+    const isHome = input.selectedTeamId === matchup.homeTeamId;
+    const moneyline = isHome ? market.odds.homeMoneyline : market.odds.awayMoneyline;
+    const wager: Wager = {
+      id: `stub-wager-${this.nextId++}`,
+      reference: `${WAGER_REFERENCE_PREFIX}${this.nextReference++}`,
+      memberId: input.memberId,
+      marketId: market.id,
+      matchupId: market.matchupId,
+      week: matchup.week,
+      selectedTeamId: input.selectedTeamId,
+      opponentTeamId: isHome ? matchup.awayTeamId : matchup.homeTeamId,
+      moneylineAtBet: moneyline,
+      stakeFaab: stake,
+      potentialProfit: round2(calculateProfit(stake, moneyline)),
+      potentialPayout: round2(calculatePayout(stake, moneyline)),
+      status: "open",
+      placedAt: new Date().toISOString(),
+    };
+    wallet.availableFaab = round2(wallet.availableFaab - stake);
+    wallet.reservedFaab = round2(wallet.reservedFaab + stake);
+    this.wagers.unshift(wager);
+    return { ok: true, wager };
+  }
+
+  cancel(memberId: string, wagerId: string): { ok: true } | { ok: false; error: string } {
+    const wager = this.wagers.find((w) => w.id === wagerId);
+    if (!wager || wager.memberId !== memberId) return { ok: false, error: "Wager not found." };
+    if (wager.status !== "open") {
+      return { ok: false, error: "Only open wagers can be cancelled." };
+    }
+    if (Date.now() - new Date(wager.placedAt).getTime() > SELF_CANCEL_WINDOW_MS) {
+      return {
+        ok: false,
+        error: "The self-cancel window has passed — ask the commissioner to void it instead.",
+      };
+    }
+    return this.applyVoid(wager);
+  }
+
+  void(wagerId: string, reason: string): { ok: true } | { ok: false; error: string } {
+    if (!reason.trim()) return { ok: false, error: "A reason is required." };
+    const wager = this.wagers.find((w) => w.id === wagerId);
+    if (!wager) return { ok: false, error: "Wager not found." };
+    if (wager.status !== "open") {
+      return { ok: false, error: "Only open wagers can be voided." };
+    }
+    return this.applyVoid(wager);
+  }
+
+  private applyVoid(wager: Wager): { ok: true } | { ok: false; error: string } {
+    const wallet = this.wallets.find((w) => w.memberId === wager.memberId);
+    if (!wallet) return { ok: false, error: "Member wallet not found." };
+    const { updatedWallet, updatedWager } = voidWagerPure(wallet, wager);
+    this.wallets = this.wallets.map((w) => (w.memberId === wallet.memberId ? updatedWallet : w));
+    this.wagers = this.wagers.map((w) => (w.id === wager.id ? updatedWager : w));
+    return { ok: true };
+  }
+
+  settle(actorMemberId: string, week: number): SettlementResult {
+    const aggregate: SettlementResult = {
+      week,
+      processed: 0,
+      won: 0,
+      lost: 0,
+      refunded: 0,
+      totalPaidOut: 0,
+      skipped: [],
+      updatedWallet:
+        this.wallets.find((w) => w.memberId === actorMemberId) ?? this.wallets[0],
+      updatedWagers: null,
+    };
+    for (const wallet of [...this.wallets]) {
+      const result = settleWagersForWeek({
+        week,
+        wallet,
+        wagers: this.wagers.filter((w) => w.memberId === wallet.memberId),
+        matchups: allMatchups,
+      });
+      aggregate.processed += result.processed;
+      aggregate.won += result.won;
+      aggregate.lost += result.lost;
+      aggregate.refunded += result.refunded;
+      aggregate.totalPaidOut = round2(aggregate.totalPaidOut + result.totalPaidOut);
+      aggregate.skipped.push(...result.skipped);
+      if (result.updatedWagers) {
+        this.wallets = this.wallets.map((w) =>
+          w.memberId === wallet.memberId ? result.updatedWallet : w
+        );
+        this.wagers = this.wagers.map(
+          (w) => result.updatedWagers!.find((u) => u.id === w.id) ?? w
+        );
+        if (wallet.memberId === actorMemberId) {
+          aggregate.updatedWallet = result.updatedWallet;
+        }
+      }
+    }
+    return aggregate;
+  }
+
+  setMarketStatus(matchupId: string, status: MarketStatus): { ok: true } | { ok: false; error: string } {
+    const market = this.markets.find((m) => m.matchupId === matchupId);
+    if (!market) return { ok: false, error: "Market not found." };
+    market.status = status;
+    return { ok: true };
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+async function stubLeagueApis(context: BrowserContext, book: StubBook) {
   await context.route("https://api.sleeper.app/**", (route) => {
     const { pathname } = new URL(route.request().url());
 
@@ -70,15 +312,63 @@ async function stubLeagueApis(context: BrowserContext) {
     return route.fulfill({ status: 500, body: `No fixture for ${pathname}` });
   });
 
-  await context.route("**/api/projections*", (route) => {
-    const position = new URL(route.request().url()).searchParams.get("position");
-    return route.fulfill(fixture(`projections-${position}.json`));
+  await context.route("**/api/**", (route) => {
+    const { pathname, searchParams } = new URL(route.request().url());
+    const method = route.request().method();
+    const json = (data: unknown, status = 200) =>
+      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data) });
+    const body = (): Record<string, unknown> =>
+      (route.request().postDataJSON() ?? {}) as Record<string, unknown>;
+
+    if (pathname === "/api/projections") {
+      return route.fulfill(fixture(`projections-${searchParams.get("position")}.json`));
+    }
+    if (pathname === "/api/book" && method === "GET") {
+      return json(book.book());
+    }
+    if (pathname === "/api/book/reset" && method === "POST") {
+      book.reset();
+      return json({ book: book.book() });
+    }
+    if (pathname === "/api/wagers" && method === "POST") {
+      const b = body();
+      const result = book.place({
+        memberId: String(b.memberId),
+        marketId: String(b.marketId),
+        selectedTeamId: String(b.selectedTeamId),
+        stakeFaab: Number(b.stakeFaab),
+      });
+      return result.ok
+        ? json({ wager: result.wager, book: book.book() })
+        : json({ error: result.error }, 400);
+    }
+    const cancelMatch = pathname.match(/^\/api\/wagers\/([^/]+)\/cancel$/);
+    if (cancelMatch && method === "POST") {
+      const result = book.cancel(String(body().memberId), cancelMatch[1]);
+      return result.ok ? json({ book: book.book() }) : json({ error: result.error }, 400);
+    }
+    if (pathname === "/api/commissioner/void" && method === "POST") {
+      const b = body();
+      const result = book.void(String(b.wagerId), String(b.reason ?? ""));
+      return result.ok ? json({ book: book.book() }) : json({ error: result.error }, 400);
+    }
+    if (pathname === "/api/commissioner/settle" && method === "POST") {
+      const b = body();
+      const result = book.settle(String(b.memberId), Number(b.week));
+      return json({ result, book: book.book() });
+    }
+    if (pathname === "/api/commissioner/market-status" && method === "POST") {
+      const b = body();
+      const result = book.setMarketStatus(String(b.matchupId), String(b.status) as MarketStatus);
+      return result.ok ? json({ book: book.book() }) : json({ error: result.error }, 400);
+    }
+    return route.fulfill({ status: 500, body: `No stub for ${method} ${pathname}` });
   });
 }
 
 export const test = base.extend({
   context: async ({ context }, use) => {
-    await stubLeagueApis(context);
+    await stubLeagueApis(context, new StubBook());
     await use(context);
   },
 });

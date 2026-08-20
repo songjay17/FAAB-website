@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { WagerStatusBadge } from "./wager-status-badge";
 import { formatFaab, formatMoneyline } from "@/lib/odds";
-import { useBetting, SELF_CANCEL_WINDOW_MS } from "@/lib/state/betting-provider";
+import { SELF_CANCEL_WINDOW_MS } from "@/lib/betting-constants";
+import { useBetting } from "@/lib/state/betting-provider";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import type { Wager } from "@/lib/types";
 
@@ -62,8 +63,8 @@ export function WagerCard({
   const isLocked = market ? market.status !== "open" : false;
   const canCancel = wager.status === "open" && withinCancelWindow;
 
-  function handleCancel() {
-    const result = cancelWager(wager.id);
+  async function handleCancel() {
+    const result = await cancelWager(wager.id);
     if (!result.ok) {
       setError(result.error);
     }

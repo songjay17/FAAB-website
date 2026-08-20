@@ -4,3 +4,4 @@ export * from "./matchup";
 export * from "./betting";
 export * from "./wallet";
 export * from "./leaderboard";
+export * from "./book";

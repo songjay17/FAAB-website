@@ -143,7 +143,15 @@ export default function CommissionerPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={resetDemoData}>Reset</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                resetDemoData().catch(() => {
+                  // Book state refetches on focus; a failed reset leaves the book unchanged.
+                });
+              }}
+            >
+              Reset
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
