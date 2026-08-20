@@ -10,7 +10,7 @@ import { WeekNav } from "@/components/shared/week-nav";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
 import { getAvailableWeeks } from "@/lib/services/matchup-service";
 import { useWeekParam } from "@/lib/hooks/use-week-param";
-import { DEMO_CURRENT_USER_ID } from "@/lib/sleeper/config";
+import { useCurrentMemberId } from "@/lib/state/session-provider";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 import { useBetting } from "@/lib/state/betting-provider";
 import type { LeaderboardEntry } from "@/lib/types";
@@ -21,6 +21,7 @@ function LeaderboardContent() {
   const scope = (searchParams.get("scope") as "week" | "season") ?? "season";
   const { allWallets, allWagers } = useBetting();
   const { league, members, teams, matchupsByWeek } = useSleeperData();
+  const currentMemberId = useCurrentMemberId();
   const { week, goToWeek } = useWeekParam("/leaderboard", league.currentWeek);
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([]);
@@ -66,7 +67,7 @@ function LeaderboardContent() {
       {isLoading || entries === null ? (
         <LoadingSkeleton variant="table" count={8} />
       ) : (
-        <LeaderboardTable entries={entries} currentMemberId={DEMO_CURRENT_USER_ID} />
+        <LeaderboardTable entries={entries} currentMemberId={currentMemberId} />
       )}
     </div>
   );

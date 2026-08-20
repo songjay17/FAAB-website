@@ -1,10 +1,9 @@
 import { test, expect, type Page } from "./fixtures";
 
-// Each Playwright test gets a fresh, isolated browser context (no cookies,
-// no localStorage) by default. The app's own state model already treats
-// "no jhulads:betting-state in localStorage" as "start from seed data" (see
-// seedState() in betting-provider.tsx), so a fresh context is already the
-// deterministic mock-state reset this app provides — no extra setup needed.
+// Each Playwright test gets a fresh, isolated browser context by default,
+// and the fixture gives each context its own in-memory StubBook seeded from
+// the recorded fixtures (see e2e/fixtures.ts) — so every test starts from
+// identical book state with no extra setup and no database.
 //
 // The table renders both a desktop <table> and a mobile card layout at all
 // times, toggling visibility with CSS breakpoints — both are always present

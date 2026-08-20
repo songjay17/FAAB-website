@@ -33,7 +33,7 @@ export function VoidWagerCard({
   onVoided,
 }: {
   icon: LucideIcon;
-  onVoided?: (summary: string) => void;
+  onVoided?: () => void;
 }) {
   const { allWagers, voidWager } = useBetting();
   const { members, teams } = useSleeperData();
@@ -58,10 +58,9 @@ export function VoidWagerCard({
       setError(result.error);
       return;
     }
-    const wager = allWagers.find((w) => w.id === selectedWagerId);
-    onVoided?.(
-      `Voided ${wager ? memberName(members, wager.memberId) : "a"}'s ${wager ? formatFaab(wager.stakeFaab) : ""} FAAB bet — reason: ${reason.trim()}.`
-    );
+    // The server writes the audit entry (actor, wager, reason); this just
+    // tells the page to refetch the trail.
+    onVoided?.();
     setSelectedWagerId(null);
     setReason("");
     setError(null);

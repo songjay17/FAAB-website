@@ -1,24 +1,25 @@
 import { NextResponse } from "next/server";
 import { cancelWager, readBook } from "@/lib/server/book";
-import { asString, jsonError } from "@/lib/server/api";
-import { getLeagueDataCached } from "@/lib/server/league-data-cache";
+import { jsonError } from "@/lib/server/api";
+import { guard, isResponse } from "@/lib/server/guard";
 
-/** Self-cancel within the grace window (misclick protection) — see SELF_CANCEL_WINDOW_MS. */
+/**
+ * Self-cancel within the grace window (misclick protection) — see
+ * SELF_CANCEL_WINDOW_MS. cancelWager only matches wagers belonging to the
+ * session's member, so this can't cancel someone else's bet.
+ */
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ wagerId: string }> }
 ) {
   try {
-    const { wagerId } = await params;
-    const body = (await request.json()) as Record<string, unknown>;
-    const memberId = asString(body.memberId);
-    if (!memberId) {
-      return jsonError("memberId is required.", 400);
-    }
+    const guarded = await guard();
+    if (isResponse(guarded)) return guarded;
+    const { data, session } = guarded;
 
-    const data = await getLeagueDataCached();
+    const { wagerId } = await params;
     const leagueId = data.league.id;
-    const result = await cancelWager({ leagueId, memberId, wagerId });
+    const result = await cancelWager({ leagueId, memberId: session.memberId, wagerId });
     if (!result.ok) {
       return jsonError(result.error, 400);
     }

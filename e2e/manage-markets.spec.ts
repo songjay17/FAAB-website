@@ -1,6 +1,7 @@
 import { test, expect } from "./fixtures";
 
-// Fresh browser context per test = fresh localStorage = seed data.
+// Fresh browser context per test = a fresh in-memory StubBook = seed data
+// (see e2e/fixtures.ts), the same isolation the rest of the suite relies on.
 // Every generated market starts "open" (see generateMarkets), so the
 // current week's (7) matchups all accept bets from a fresh seed.
 

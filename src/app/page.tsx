@@ -18,12 +18,13 @@ import { formatMoneyline } from "@/lib/odds";
 import { getMatchupsByWeek } from "@/lib/services/matchup-service";
 import { getTeams } from "@/lib/services/team-service";
 import { getLeaderboard } from "@/lib/services/leaderboard-service";
-import { DEMO_CURRENT_USER_ID } from "@/lib/sleeper/config";
+import { useCurrentMemberId } from "@/lib/state/session-provider";
 import type { FantasyTeam, LeaderboardEntry, WeeklyMatchup } from "@/lib/types";
 
 export default function DashboardPage() {
   const { wallet, wagers, allWallets, allWagers, allMarkets } = useBetting();
   const { league, members, teams: sleeperTeams, matchupsByWeek } = useSleeperData();
+  const currentMemberId = useCurrentMemberId();
   const [matchups, setMatchups] = useState<WeeklyMatchup[]>([]);
   const [teams, setTeams] = useState<FantasyTeam[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -276,7 +277,7 @@ export default function DashboardPage() {
                     </span>
                     <span
                       className={
-                        entry.memberId === DEMO_CURRENT_USER_ID ? "font-semibold text-primary" : ""
+                        entry.memberId === currentMemberId ? "font-semibold text-primary" : ""
                       }
                     >
                       {entry.displayName}

@@ -1,6 +1,7 @@
 import { test, expect } from "./fixtures";
 
-// Fresh browser context per test = fresh localStorage = seed data.
+// Fresh browser context per test = a fresh in-memory StubBook = seed data
+// (see e2e/fixtures.ts), the same isolation the rest of the suite relies on.
 // Fixture data pins the current week to 7 (real matchups exist for weeks
 // 1-7); seeded wagers span weeks 5-7, with week 6 settled and week 7 open.
 
