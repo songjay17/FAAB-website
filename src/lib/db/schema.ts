@@ -83,6 +83,13 @@ export const markets = pgTable(
     totalFaabAway: doublePrecision("total_faab_away").notNull(),
     /** When the line was priced — the odds-snapshot moment. */
     oddsUpdatedAt: timestamp("odds_updated_at", { withTimezone: true }).notNull(),
+    /**
+     * Betting deadline, denormalized from the matchup at pricing time (same
+     * reason as home/away team ids): placement enforces it without a Sleeper
+     * fetch. Null only for pre-lock-times rows, which are treated as having
+     * no deadline rather than as instantly locked.
+     */
+    lockAt: timestamp("lock_at", { withTimezone: true }),
   },
   (t) => [primaryKey({ columns: [t.leagueId, t.id] })]
 );

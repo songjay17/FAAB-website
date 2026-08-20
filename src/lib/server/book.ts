@@ -1,7 +1,8 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { auditLog, books, markets, wagers, wallets } from "@/lib/db/schema";
 import { SELF_CANCEL_WINDOW_MS, WAGER_REFERENCE_PREFIX } from "@/lib/betting-constants";
+import { effectiveMarketStatus, hasRealLockTime, isPastLockTime } from "@/lib/market-lock";
 import { calculatePayout, calculateProfit } from "@/lib/odds";
 import type { LeagueData } from "@/lib/sleeper/load-league-data";
 import { generateMarkets } from "@/lib/state/generate-markets";
@@ -46,10 +47,14 @@ function toWallet(row: WalletRow): FaabWallet {
 }
 
 function toMarket(row: MarketRow): BettingMarket {
+  const lockAt = row.lockAt?.toISOString();
   return {
     id: row.id,
     matchupId: row.matchupId,
-    status: row.status as MarketStatus,
+    // The clock is applied as the book is served, so a market past its
+    // deadline reads as locked everywhere without waiting for a write (see
+    // lockExpiredMarkets, which persists the same transition).
+    status: effectiveMarketStatus(row.status as MarketStatus, lockAt),
     odds: {
       homeMoneyline: row.homeMoneyline,
       awayMoneyline: row.awayMoneyline,
@@ -57,6 +62,7 @@ function toMarket(row: MarketRow): BettingMarket {
     },
     totalFaabHome: row.totalFaabHome,
     totalFaabAway: row.totalFaabAway,
+    lockAt: hasRealLockTime(lockAt) ? lockAt : undefined,
   };
 }
 
@@ -158,6 +164,7 @@ export async function syncBook(data: LeagueData): Promise<void> {
               totalFaabHome: market.totalFaabHome,
               totalFaabAway: market.totalFaabAway,
               oddsUpdatedAt: new Date(market.odds.updatedAt),
+              lockAt: hasRealLockTime(matchup.lockAt) ? new Date(matchup.lockAt) : null,
             };
           })
         )
@@ -170,6 +177,45 @@ export async function syncBook(data: LeagueData): Promise<void> {
         .set({ status: "locked" })
         .where(and(eq(markets.leagueId, leagueId), eq(markets.status, "open")));
     }
+
+    // Backfill deadlines onto markets priced before lock times existed (and
+    // onto any priced while the schedule lookup was failing), so the clock
+    // applies to them too rather than only to newly-priced markets.
+    const missingLockAt = await tx
+      .select({ id: markets.id, matchupId: markets.matchupId })
+      .from(markets)
+      .where(and(eq(markets.leagueId, leagueId), isNull(markets.lockAt)));
+    if (missingLockAt.length > 0) {
+      const lockAtByMatchupId = new Map(
+        allMatchups
+          .filter((m) => hasRealLockTime(m.lockAt))
+          .map((m) => [m.id, new Date(m.lockAt)])
+      );
+      for (const row of missingLockAt) {
+        const lockAt = lockAtByMatchupId.get(row.matchupId);
+        if (!lockAt) continue;
+        await tx
+          .update(markets)
+          .set({ lockAt })
+          .where(and(eq(markets.leagueId, leagueId), eq(markets.id, row.id)));
+      }
+    }
+
+    // Persist the clock-driven transition so the stored status matches what
+    // readers already see (toMarket applies the same rule). Doing it here
+    // rather than on a cron keeps it dependency-free: the book is synced on
+    // every read, which for a weekly-cadence league is often enough.
+    await tx
+      .update(markets)
+      .set({ status: "locked" })
+      .where(
+        and(
+          eq(markets.leagueId, leagueId),
+          eq(markets.status, "open"),
+          isNotNull(markets.lockAt),
+          lte(markets.lockAt, new Date())
+        )
+      );
 
     const walletRows = await tx
       .select()
@@ -236,6 +282,15 @@ export async function placeWager(input: {
     }
     if (marketRow.status !== "open") {
       return { ok: false as const, error: "This market is no longer accepting bets." };
+    }
+    // Checked inside the transaction against the row's own deadline, so a
+    // page that loaded while the market was open can't sneak a bet in after
+    // kickoff — the client's view of `status` is never trusted here.
+    if (isPastLockTime(marketRow.lockAt?.toISOString())) {
+      return {
+        ok: false as const,
+        error: "Betting for this matchup closed when the week's games kicked off.",
+      };
     }
     if (selectedTeamId !== marketRow.homeTeamId && selectedTeamId !== marketRow.awayTeamId) {
       return { ok: false as const, error: "Selected team is not part of this matchup." };
@@ -508,14 +563,27 @@ export async function setMarketStatus(input: {
     return { ok: false, error: "Market status can only be set to open or locked." };
   }
 
-  const updated = await db
-    .update(markets)
-    .set({ status })
-    .where(and(eq(markets.leagueId, leagueId), eq(markets.matchupId, matchupId)))
-    .returning({ id: markets.id });
-  if (updated.length === 0) {
+  const [existing] = await db
+    .select({ lockAt: markets.lockAt })
+    .from(markets)
+    .where(and(eq(markets.leagueId, leagueId), eq(markets.matchupId, matchupId)));
+  if (!existing) {
     return { ok: false, error: "Market not found." };
   }
+  // Reopening a market whose kickoff has passed would be undone on the next
+  // read anyway; refusing it outright is clearer than a toggle that appears
+  // to work and silently reverts.
+  if (status === "open" && isPastLockTime(existing.lockAt?.toISOString())) {
+    return {
+      ok: false,
+      error: "This matchup's games have already kicked off — its market can't be reopened.",
+    };
+  }
+
+  await db
+    .update(markets)
+    .set({ status })
+    .where(and(eq(markets.leagueId, leagueId), eq(markets.matchupId, matchupId)));
 
   await getDb().insert(auditLog).values({
     leagueId,

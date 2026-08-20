@@ -1,0 +1,1 @@
+ALTER TABLE "markets" ADD COLUMN "lock_at" timestamp with time zone;
