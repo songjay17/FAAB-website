@@ -1,11 +1,19 @@
 "use client";
 
 import { createContext, useContext, useEffect, useReducer, type ReactNode } from "react";
-import type { BettingMarket, FaabWallet, FantasyPlayer, MarketStatus, Wager, WeeklyMatchup } from "@/lib/types";
+import type {
+  BettingMarket,
+  FaabWallet,
+  FantasyPlayer,
+  League,
+  LeagueMember,
+  MarketStatus,
+  Wager,
+  WeeklyMatchup,
+} from "@/lib/types";
 import { calculatePayout, calculateProfit } from "@/lib/odds";
 import { DEMO_CURRENT_USER_ID as currentMemberId } from "@/lib/sleeper/config";
-import { mockWallets } from "@/lib/mock-data/wallets";
-import { mockWagers } from "@/lib/mock-data/wagers";
+import { MOCK_SEED_LEAGUE_ID, mockWallets, mockWagers } from "@/lib/mock-data";
 import { useSleeperData } from "./sleeper-data-provider";
 import { generateMarkets } from "./generate-markets";
 import {
@@ -33,12 +41,34 @@ export const SELF_CANCEL_WINDOW_MS = 5 * 60 * 1000;
 // can lock/unlock a market and have every page that gates on
 // `market.status` reflect it immediately.
 type BettingState = {
+  /** Which Sleeper league this state belongs to — a season rollover mints a new league id, and the old season's balances must not carry into it. */
+  leagueId: string;
   wallets: FaabWallet[];
   wagers: Wager[];
   markets: BettingMarket[];
 };
 
 type BettingAction = { type: "HYDRATE"; payload: BettingState };
+
+/**
+ * Persisted markets ARE the odds snapshot: a line is priced exactly once,
+ * the first time its matchup is seen, and read from storage ever after — a
+ * live roster change can never move an already-posted line out from under
+ * bettors. Matchups without a market yet (a new week arriving mid-season)
+ * get one priced now; previously a returning session never generated
+ * markets for weeks that appeared after its first visit, leaving them
+ * unbettable.
+ */
+function withMarketsForNewMatchups(
+  persisted: BettingMarket[],
+  allMatchups: WeeklyMatchup[],
+  playersByTeam: Record<string, FantasyPlayer[]>
+): BettingMarket[] {
+  const priced = new Set(persisted.map((m) => m.matchupId));
+  const newMatchups = allMatchups.filter((m) => !priced.has(m.id));
+  if (newMatchups.length === 0) return persisted;
+  return [...persisted, ...generateMarkets(newMatchups, playersByTeam)];
+}
 
 /**
  * Outside a live season there is nothing to bet on — every market is forced
@@ -51,15 +81,38 @@ function lockMarketsWhenClosed(markets: BettingMarket[], bettingOpen: boolean): 
   return markets.map((m) => (m.status === "open" ? { ...m, status: "locked" } : m));
 }
 
+/** Untouched full-budget wallets for every member — what a brand-new season starts from before waiver-spend reconciliation. */
+function freshWallets(league: League, members: LeagueMember[]): FaabWallet[] {
+  return members.map((member) => ({
+    memberId: member.id,
+    totalBudget: league.waiverBudget,
+    availableFaab: league.waiverBudget,
+    reservedFaab: 0,
+    weeklyProfitLoss: 0,
+    seasonProfitLoss: 0,
+    sleeperWaiverSpend: 0,
+  }));
+}
+
 function seedState(
+  league: League,
+  members: LeagueMember[],
   allMatchups: WeeklyMatchup[],
   playersByTeam: Record<string, FantasyPlayer[]>,
   waiverSpendByMemberId: Record<string, number>,
   bettingOpen: boolean
 ): BettingState {
+  // The hand-authored demo wallets/wagers were written against one specific
+  // league's real matchups; any other league (a rollover successor) starts
+  // clean instead of inheriting wagers that point at another season's games.
+  const isMockSeedLeague = league.id === MOCK_SEED_LEAGUE_ID;
   return {
-    wallets: reconcileWallets(mockWallets, waiverSpendByMemberId),
-    wagers: mockWagers,
+    leagueId: league.id,
+    wallets: reconcileWallets(
+      isMockSeedLeague ? mockWallets : freshWallets(league, members),
+      waiverSpendByMemberId
+    ),
+    wagers: isMockSeedLeague ? mockWagers : [],
     markets: lockMarketsWhenClosed(generateMarkets(allMatchups, playersByTeam), bettingOpen),
   };
 }
@@ -81,11 +134,16 @@ function reconcileWallets(
   });
 }
 
-/** Guards against a pre-existing localStorage entry saved by an older shape of this state. */
+/**
+ * Guards against a pre-existing localStorage entry saved by an older shape
+ * of this state. leagueId may legitimately be absent (entries saved before
+ * it existed) — initState maps that to the mock-seed league.
+ */
 function isValidBettingState(value: unknown): value is BettingState {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<BettingState>;
   return (
+    (candidate.leagueId === undefined || typeof candidate.leagueId === "string") &&
     Array.isArray(candidate.wallets) &&
     Array.isArray(candidate.wagers) &&
     Array.isArray(candidate.markets) &&
@@ -106,6 +164,8 @@ function isValidBettingState(value: unknown): value is BettingState {
  * only ever one state value for the whole first render, no race possible.
  */
 function initState(
+  league: League,
+  members: LeagueMember[],
   allMatchups: WeeklyMatchup[],
   playersByTeam: Record<string, FantasyPlayer[]>,
   waiverSpendByMemberId: Record<string, number>,
@@ -117,23 +177,34 @@ function initState(
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
         if (isValidBettingState(parsed)) {
-          // A previous session's persisted wallets may be stale relative to
-          // real Sleeper waiver spend that happened since the last visit —
-          // reconcile every time state is loaded from storage, not just on
-          // first-ever seed.
-          return {
-            ...parsed,
-            wallets: reconcileWallets(parsed.wallets, waiverSpendByMemberId),
-            markets: lockMarketsWhenClosed(parsed.markets, bettingOpen),
-          };
+          // Entries saved before leagueId existed all predate the first
+          // rollover, so they belong to the mock-seed (2025) league.
+          const persistedLeagueId = parsed.leagueId ?? MOCK_SEED_LEAGUE_ID;
+          if (persistedLeagueId === league.id) {
+            // A previous session's persisted wallets may be stale relative
+            // to real Sleeper waiver spend that happened since the last
+            // visit — reconcile every time state is loaded from storage,
+            // not just on first-ever seed.
+            return {
+              ...parsed,
+              leagueId: league.id,
+              wallets: reconcileWallets(parsed.wallets, waiverSpendByMemberId),
+              markets: lockMarketsWhenClosed(
+                withMarketsForNewMatchups(parsed.markets, allMatchups, playersByTeam),
+                bettingOpen
+              ),
+            };
+          }
         }
+        // Different league (season rollover) or unrecognized shape — the old
+        // season's balances don't carry into the new book.
         window.localStorage.removeItem(STORAGE_KEY);
       }
     } catch {
       // Ignore corrupt/unavailable storage (e.g. private browsing) and fall through to seed state.
     }
   }
-  return seedState(allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen);
+  return seedState(league, members, allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen);
 }
 
 const WAGER_REFERENCE_PREFIX = "JHL-";
@@ -191,13 +262,13 @@ type BettingContextValue = {
 const BettingContext = createContext<BettingContextValue | null>(null);
 
 export function BettingProvider({ children }: { children: ReactNode }) {
-  const { league, matchupsByWeek, playersByTeam, waiverSpendByMemberId } = useSleeperData();
+  const { league, members, matchupsByWeek, playersByTeam, waiverSpendByMemberId } = useSleeperData();
   const allMatchups = Array.from(matchupsByWeek.values()).flat();
   const bettingOpen = league.seasonPhase === "in_season";
   const [state, dispatch] = useReducer(
     bettingReducer,
     undefined,
-    () => initState(allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen)
+    () => initState(league, members, allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen)
   );
 
   useEffect(() => {
@@ -269,7 +340,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     }
     dispatch({
       type: "HYDRATE",
-      payload: seedState(allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen),
+      payload: seedState(league, members, allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen),
     });
   }
 

@@ -57,6 +57,9 @@ async function stubLeagueApis(context: BrowserContext) {
     if (pathname === "/v1/state/nfl") {
       return route.fulfill(fixture("nfl-state.json"));
     }
+    if (/^\/schedule\/nfl\/regular\/\d+$/.test(pathname)) {
+      return route.fulfill(fixture("schedule.json"));
+    }
     // League-rollover successor lookups (resolve-league.ts) — the frozen
     // in-season league has no successor, so any user-leagues query is empty.
     if (/^\/v1\/user\/\d+\/leagues\/nfl\/\d+$/.test(pathname)) {

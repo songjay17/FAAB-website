@@ -14,6 +14,7 @@ import type {
   SleeperMatchupEntry,
   SleeperNflState,
   SleeperPlayersById,
+  SleeperScheduleGame,
   SleeperRoster,
   SleeperUser,
 } from "./types";
@@ -154,6 +155,27 @@ export function computeRecentForm(
     form.push(mine.points > opponent.points ? "W" : "L");
   }
   return form;
+}
+
+/**
+ * Week -> betting lock time (ISO string), from the real NFL schedule. The
+ * schedule exposes game dates but not kickoff times, so each week locks at
+ * 13:00 UTC (9am EDT / 8am EST) on its earliest game day — the morning of
+ * the week's first game, safely before every kickoff slot that opens an NFL
+ * week (Thursday night, Thanksgiving 12:30pm ET, even London's 9:30am ET).
+ */
+export function buildWeekLockTimes(games: SleeperScheduleGame[]): Map<number, string> {
+  const earliestDateByWeek = new Map<number, string>();
+  for (const game of games) {
+    if (!game.date) continue;
+    const current = earliestDateByWeek.get(game.week);
+    if (!current || game.date < current) earliestDateByWeek.set(game.week, game.date);
+  }
+  const lockTimes = new Map<number, string>();
+  for (const [week, date] of earliestDateByWeek) {
+    lockTimes.set(week, `${date}T13:00:00.000Z`);
+  }
+  return lockTimes;
 }
 
 /**
