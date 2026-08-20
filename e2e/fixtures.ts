@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { WAGER_REFERENCE_PREFIX, SELF_CANCEL_WINDOW_MS } from "../src/lib/betting-constants";
 import { calculatePayout, calculateProfit } from "../src/lib/odds";
+import { MAX_FAAB_ADJUSTMENT } from "../src/lib/server/book";
 import { effectiveMarketStatus, isPastLockTime } from "../src/lib/market-lock";
 import { mockWallets } from "../src/lib/mock-data/wallets";
 import { mockWagers } from "../src/lib/mock-data/wagers";
@@ -174,6 +175,37 @@ class StubBook {
 
   auditEntries(): StubAuditEntry[] {
     return this.audit;
+  }
+
+  /** Mirrors the server's adjustWalletFaab: available balance only, reason required, audit-logged. */
+  adjustFaab(
+    memberId: string,
+    amount: number,
+    reason: string
+  ): { ok: true } | { ok: false; error: string } {
+    const rounded = round2(amount);
+    if (!Number.isFinite(rounded) || rounded === 0) {
+      return { ok: false, error: "Enter a non-zero adjustment amount." };
+    }
+    if (Math.abs(rounded) > MAX_FAAB_ADJUSTMENT) {
+      return {
+        ok: false,
+        error: `Adjustments are capped at ${MAX_FAAB_ADJUSTMENT} FAAB per correction.`,
+      };
+    }
+    if (!reason.trim()) return { ok: false, error: "A reason is required." };
+    const wallet = this.wallets.find((w) => w.memberId === memberId);
+    if (!wallet) return { ok: false, error: "Member wallet not found." };
+    const next = round2(wallet.availableFaab + rounded);
+    if (next < 0) {
+      return {
+        ok: false,
+        error: `That would take the balance below zero (available: ${wallet.availableFaab}).`,
+      };
+    }
+    wallet.availableFaab = next;
+    this.log("adjust-faab", memberId, `${rounded > 0 ? "+" : ""}${rounded} FAAB — ${reason.trim()}`);
+    return { ok: true };
   }
 
   /** Moves one matchup's betting deadline (and optionally its stored status) — see lock-timing.spec.ts. */
@@ -444,6 +476,15 @@ async function stubLeagueApis(context: BrowserContext, book: StubBook) {
     const cancelMatch = pathname.match(/^\/api\/wagers\/([^/]+)\/cancel$/);
     if (cancelMatch && method === "POST") {
       const result = book.cancel(SESSION_MEMBER_ID, cancelMatch[1]);
+      return result.ok ? json({ book: book.book() }) : json({ error: result.error }, 400);
+    }
+    if (pathname === "/api/commissioner/adjust-faab" && method === "POST") {
+      const b = body();
+      const result = book.adjustFaab(
+        String(b.memberId),
+        Number(b.amount),
+        String(b.reason ?? "")
+      );
       return result.ok ? json({ book: book.book() }) : json({ error: result.error }, 400);
     }
     if (pathname === "/api/commissioner/void" && method === "POST") {
