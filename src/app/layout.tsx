@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BettingProvider } from "@/lib/state/betting-provider";
+import { SessionProvider } from "@/lib/state/session-provider";
 import { SleeperDataProvider } from "@/lib/state/sleeper-data-provider";
 import { AppShell } from "@/components/layout/app-shell";
 
@@ -32,13 +33,16 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <SleeperDataProvider>
-          <BettingProvider>
-            <TooltipProvider>
-              <AppShell>{children}</AppShell>
-            </TooltipProvider>
-          </BettingProvider>
-        </SleeperDataProvider>
+        {/* Session first: everything below it can assume a signed-in member. */}
+        <SessionProvider>
+          <SleeperDataProvider>
+            <BettingProvider>
+              <TooltipProvider>
+                <AppShell>{children}</AppShell>
+              </TooltipProvider>
+            </BettingProvider>
+          </SleeperDataProvider>
+        </SessionProvider>
       </body>
     </html>
   );

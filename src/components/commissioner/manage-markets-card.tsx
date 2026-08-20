@@ -21,7 +21,13 @@ function teamName(teams: FantasyTeam[], teamId: string) {
   return teams.find((t) => t.id === teamId)?.name ?? teamId;
 }
 
-export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
+export function ManageMarketsCard({
+  icon: Icon,
+  onChanged,
+}: {
+  icon: LucideIcon;
+  onChanged?: () => void;
+}) {
   const { allMarkets, setMarketStatus } = useBetting();
   const { teams, matchupsByWeek } = useSleeperData();
   const allMatchups = Array.from(matchupsByWeek.values()).flat();
@@ -93,9 +99,11 @@ export function ManageMarketsCard({ icon: Icon }: { icon: LucideIcon }) {
                         setMarketStatus(
                           market.matchupId,
                           market.status === "open" ? "locked" : "open"
-                        ).catch(() => {
-                          // Book state refetches on focus; a failed toggle just leaves the badge unchanged.
-                        })
+                        )
+                          .then(() => onChanged?.())
+                          .catch(() => {
+                            // Book state refetches on focus; a failed toggle just leaves the badge unchanged.
+                          })
                       }
                     >
                       {market.status === "open" ? "Lock" : "Reopen"}

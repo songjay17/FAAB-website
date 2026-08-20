@@ -1,6 +1,7 @@
 import { test, expect } from "./fixtures";
 
-// Fresh browser context per test = fresh localStorage = seed data
+// Fresh browser context per test = a fresh in-memory StubBook = seed data
+// (see e2e/fixtures.ts), the same isolation the rest of the suite relies on.
 // (see betting-provider.tsx seedState()), same reset mechanism the
 // leaderboard/void-wager e2e suites rely on. wager-1 (JHL-70231, "Puka di
 // Beppo") belongs to the signed-in member and is open, so it's a good fixture

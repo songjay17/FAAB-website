@@ -26,7 +26,13 @@ const skipReasonLabel: Record<string, string> = {
   "team-not-in-matchup": "selected team not in matchup",
 };
 
-export function SettleWeekCard({ icon: Icon }: { icon: LucideIcon }) {
+export function SettleWeekCard({
+  icon: Icon,
+  onSettled,
+}: {
+  icon: LucideIcon;
+  onSettled?: () => void;
+}) {
   const { allWagers, settleWeek } = useBetting();
   const [settling, setSettling] = useState(false);
   const [result, setResult] = useState<SettlementResult | null>(null);
@@ -42,6 +48,7 @@ export function SettleWeekCard({ icon: Icon }: { icon: LucideIcon }) {
     setSettling(true);
     try {
       setResult(await settleWeek(week));
+      onSettled?.();
     } catch {
       // The book refetches on focus; a failed settle leaves everything open
       // and the button re-enabled to try again.

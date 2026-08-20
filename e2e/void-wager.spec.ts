@@ -1,8 +1,7 @@
 import { test, expect } from "./fixtures";
 
-// Fresh browser context per test = fresh localStorage = seed data
-// (see betting-provider.tsx seedState()), same reset mechanism the
-// leaderboard e2e suite relies on.
+// Fresh browser context per test = a fresh in-memory StubBook = seed data
+// (see e2e/fixtures.ts), the same isolation the rest of the suite relies on.
 
 test.describe("Commissioner: void or refund a wager", () => {
   test("voiding an open wager returns the stake, removes it from the open list, and logs an audit entry", async ({
@@ -16,7 +15,6 @@ test.describe("Commissioner: void or refund a wager", () => {
 
     const connorRow = page.getByTestId("voidable-wager-row").filter({ hasText: "cacloading" });
     await expect(connorRow).toBeVisible();
-    const stakeText = await connorRow.locator("span.font-mono").innerText();
 
     await connorRow.getByRole("button", { name: "Void" }).click();
 
@@ -33,9 +31,10 @@ test.describe("Commissioner: void or refund a wager", () => {
 
     await page.getByRole("button", { name: "Close" }).first().click();
 
-    // Audit Activity gets a live entry reflecting the void.
+    // Audit Activity gets a server-recorded entry: actor, action, the
+    // wager's reference, and the reason.
     await expect(
-      page.getByText(`Voided cacloading's ${stakeText} FAAB bet — reason: Market posted with wrong opponent.`)
+      page.getByText(/voided wager JHL-\d+ — reason: Market posted with wrong opponent\./)
     ).toBeVisible();
   });
 

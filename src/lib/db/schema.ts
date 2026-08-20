@@ -1,4 +1,5 @@
 import {
+  boolean,
   doublePrecision,
   integer,
   pgSequence,
@@ -16,6 +17,29 @@ import {
 
 /** JHL-#### wager references, issued by the database so they're unique league-wide. */
 export const wagerReferenceSeq = pgSequence("wager_reference_seq", { startWith: 1001 });
+
+/**
+ * Per-league member credentials. A row exists only once someone *claims*
+ * that member — the roster of who exists comes from Sleeper, not from here,
+ * so an unclaimed member is simply absent. is_commissioner is copied from
+ * Sleeper's is_owner at claim time so authorization never depends on a live
+ * API call.
+ */
+export const memberAuth = pgTable(
+  "member_auth",
+  {
+    leagueId: text("league_id").notNull(),
+    memberId: text("member_id").notNull(),
+    pinHash: text("pin_hash").notNull(),
+    isCommissioner: boolean("is_commissioner").notNull().default(false),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Consecutive failed PIN attempts; reset to 0 on success. */
+    failedAttempts: integer("failed_attempts").notNull().default(0),
+    /** Set while locked out after too many failures; null when not locked. */
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.leagueId, t.memberId] })]
+);
 
 /** One row per bootstrapped league book — marks seeding as done and records when. */
 export const books = pgTable("books", {

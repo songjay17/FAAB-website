@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { BettingMarket, Book, FaabWallet, MarketStatus, Wager } from "@/lib/types";
-import { DEMO_CURRENT_USER_ID as currentMemberId } from "@/lib/sleeper/config";
+import { useCurrentMemberId } from "./session-provider";
 import type { SettlementResult } from "./settlement";
 
 // The betting book lives on the server now (see src/lib/server/book.ts) —
@@ -67,6 +67,7 @@ type BettingContextValue = {
 const BettingContext = createContext<BettingContextValue | null>(null);
 
 export function BettingProvider({ children }: { children: ReactNode }) {
+  const currentMemberId = useCurrentMemberId();
   const [state, setState] = useState<BookState>({ status: "loading" });
   // Focus refetches must not clobber the book a concurrent mutation just
   // returned — while any mutation is in flight, background refreshes are
@@ -99,6 +100,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     };
   }, [applyBook]);
 
+  // The actor is never sent — the server derives it from the session cookie.
   const mutate = useCallback(
     async (url: string, payload: Record<string, unknown>) => {
       pendingMutations.current += 1;
@@ -106,7 +108,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         const { ok, body } = await requestJson(url, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ ...payload, memberId: currentMemberId }),
+          body: JSON.stringify(payload),
         });
         if (ok && body.book) {
           applyBook(body.book as unknown as Book);
@@ -136,8 +138,18 @@ export function BettingProvider({ children }: { children: ReactNode }) {
   }
 
   const { book } = state;
-  const wallet = book.wallets.find((w) => w.memberId === currentMemberId)!;
+  const wallet = book.wallets.find((w) => w.memberId === currentMemberId);
   const wagers = book.wagers.filter((w) => w.memberId === currentMemberId);
+
+  if (!wallet) {
+    // The book seeds a wallet for every Sleeper member, so this only happens
+    // if the roster changed between the book sync and this render.
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 text-center text-sm text-destructive">
+        No FAAB wallet found for your member — ask the commissioner to reset the book.
+      </div>
+    );
+  }
 
   function openWagerForMatchup(matchupId: string) {
     return wagers.find((w) => w.matchupId === matchupId && w.status === "open");
