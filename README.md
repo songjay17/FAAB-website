@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+A private FAAB betting book for the "JHU Lads" Sleeper fantasy football league: members bet their real Sleeper FAAB budget on weekly matchups, with odds priced from each team's best-possible lineup.
 
 ## QA pass — complete
 
@@ -19,11 +19,11 @@ Wager settlement (won/lost/refunded, FAAB payouts, weekly & season P&L) shipped 
 ## Next up
 
 - [x] **Deterministic e2e suite** — Playwright now stubs every Sleeper API and `/api/projections` request with recorded fixtures (`e2e/fixtures/`, served via `page.route()` in `e2e/fixtures.ts`), patched to a frozen mid-season snapshot: current week 7, weeks 1–6 settled, zero real waiver spend. The suite had gone 26/38 red purely from reality drift — the live 2025 league finished (`status: complete`, `last_scored_leg: 17`) and real FAAB spend maxed out, so reconciliation correctly zeroed the demo wallets and every bet-placing test died. Specs were also still using mock-era names ("Puka Shells", "Diggs My Grave", "Justin") that no longer exist; realigned to real Sleeper display/team names and stakes that fit the 100-unit budget. Seed `wager-8` now picks roster-7, the real winner of matchup 6-5, keeping the winning-settlement e2e path intact.
-- [ ] **Deploy to a real host** — the app now needs server env (`DATABASE_URL`, `SESSION_SECRET`, `FANTASYPROS_API_KEY`) and a Postgres it can reach. Nothing blocks a Vercel deploy; it just hasn't been done.
-- [ ] **Adjust a member's FAAB** — the commissioner page used to show a placeholder button for this (removed with the mock cards). Worth building for real when a correction is actually needed: a transactional wallet adjustment with a required reason, audit-logged like void.
+- [ ] **Deploy to a real host** — the code is deployment-ready (see [Deployment](#deployment) for step-by-step Vercel instructions); it just needs the Vercel project created and the three env vars set.
 
 ### Done
 
+- [x] **Adjust a member's FAAB** — a real commissioner correction tool, replacing the removed placeholder: `adjustWalletFaab` applies a signed amount to a member's available balance in one transaction with the wallet row locked, requires a reason, and audit-logs the signed amount alongside it ("+15 FAAB — waiver correction"). Deliberately narrow: it moves `availableFaab` only, since reserved FAAB is owned by open wagers, and it leaves weekly/season P/L alone for the same reason waiver reconciliation does — a correction isn't a betting outcome and shouldn't move anyone's leaderboard standing. Refuses to push a balance below zero, caps a single correction at 500 FAAB (a guard against a typo'd extra zero), and is commissioner-gated like void/settle. The dialog previews the resulting balance before applying.
 - [x] **Time-based market locking** — markets now lock on the clock, with no commissioner action needed. Each market carries its own `lockAt` (denormalized from the matchup at pricing time, like the team ids, so placement never needs a Sleeper fetch), and the deadline is applied in three places: as the book is served (`effectiveMarketStatus`, so a market past kickoff reads as locked everywhere immediately), as a persisted sweep on every book sync (the stored status catches up without a cron), and — the one that actually matters — inside `placeWager`'s transaction against the row's own deadline, so a page that loaded while the market was open still can't sneak a bet in after kickoff. Reopening an expired market is refused outright rather than silently reverting on the next read. The UI shows the deadline as a date, switches to a live countdown ("Locks in 3h 12m") inside the final 24 hours, and reads "Betting closed" once passed (`MarketLockTimer`, shared by the matchup card, detail page, and bet slip). The epoch placeholder used when the NFL schedule lookup fails means "no deadline", never "locked since 1970". Existing markets were backfilled with real deadlines from the schedule.
 - [x] **Identity & enforcement (PR 2 of the shared-persistence plan)** — members claim their Sleeper identity with a PIN (argon2-hashed, 5-strike 15-minute lockout) and get an httpOnly signed session cookie (`jose` JWT, 30 days, league-scoped so a season rollover requires a re-claim). Every mutation route now derives the actor from that cookie — `memberId` is no longer accepted from the client — and commissioner routes (void, settle, market lock, reset, audit, PIN reset) additionally require the `is_commissioner` flag copied from Sleeper's league owner at claim time (`src/lib/server/guard.ts`). The app shell gates on a signed-in session (`SessionProvider`), the topbar shows who you are with a sign-out control, and `DEMO_CURRENT_USER_ID` is gone. The commissioner page drops its four placeholder cards and its fake seed audit list in favor of the real server `audit_log` (actor, action, subject, reason, resolved to display names) plus a PIN-reset control for the "I forgot my PIN" path — which clears the claim so the member picks their own new PIN rather than the commissioner setting one. Needs `SESSION_SECRET` (see `.env.example`).
 - [x] **Shared persistence (PR 1 of the shared-persistence plan)** — the betting book (wallets, wagers, markets) now lives in Postgres (Supabase) as one league-wide truth instead of per-browser localStorage. Server-authoritative via Next.js route handlers + Drizzle (`src/lib/server/book.ts`, `/api/book` + mutation routes): every money path runs in a transaction with the wallet rows locked, wager references come from a database sequence, waiver reconciliation is row-locked on read, and markets are priced once server-side — the odds snapshot is finally the same line for every member. `BettingProvider` is now a thin API client (fetch on load/focus, hydrate from each mutation response). Bootstrap is idempotent: first sight of a league id seeds full-budget wallets and prices markets; a season rollover's new league id starts a clean book automatically. The hand-authored demo wallets/wagers retired from the app and now seed only the e2e suite's in-memory book stub (`StubBook` in `e2e/fixtures.ts`, which mirrors the server's rules via the same pure functions). Decisions and PR-2 scope: [docs/shared-persistence-plan.md](docs/shared-persistence-plan.md). Requires `DATABASE_URL` (see `.env.example`); migrations via `npx drizzle-kit migrate`.
@@ -43,37 +43,49 @@ Wager settlement (won/lost/refunded, FAAB payouts, weekly & season P&L) shipped 
 - [x] Persistent local mock state and reset controls — audited: wallets/wagers/markets already persist to `localStorage` and "Reset demo data" already restores clean seed state (both worked correctly going into this pass). The one real gap: wager reference numbers (`JHL-####`) were generated from a module-level counter that reset to `1000` on every page load, so a reload followed by a new bet could reissue a reference already used by an earlier-session wager sitting in storage. Fixed by deriving the next reference from the highest one already in persisted state instead of an in-memory counter.
 - [x] Sleeper read-only integration — league/team/member data, per-week matchups, and betting markets are now all generated from real Sleeper API data (with FantasyPros projections feeding the optimal-lineup odds calc) instead of hand-authored mocks; `wager-service.ts` and the last hand-authored mock files (`league.ts`, `teams.ts`, `matchups.ts`, `markets.ts`) are deleted. Shipped across [#16](https://github.com/songjay17/FAAB-website/pull/16)–[#20](https://github.com/songjay17/FAAB-website/pull/20). Wallets and wagers are still seeded mock data layered on top of the real rosters/matchups — that's what the FAAB reconciliation item above needs to replace.
 
-## Getting Started
-
-First, run the development server:
+## Local setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # then fill in the values below
+npm run db:migrate           # creates the schema in your database
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+All three are **server-only** — none are `NEXT_PUBLIC_`-prefixed, so they never reach the browser bundle.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | What it is | Where to get it |
+| --- | --- | --- |
+| `DATABASE_URL` | Postgres holding the betting book | Supabase → your project → **Connect** → **Transaction pooler** URI (port `6543`), with your database password substituted in |
+| `SESSION_SECRET` | Signs the session cookie | Any random 32+ character string: `openssl rand -base64 48`. Changing it signs everyone out |
+| `FANTASYPROS_API_KEY` | Player projections that price the odds | [FantasyPros API key request](https://secure.fantasypros.com/api-keys/request/). Optional — without it, odds fall back to positional averages |
 
-## Learn More
+The Sleeper league id has a working default and only needs setting (`NEXT_PUBLIC_SLEEPER_LEAGUE_ID`) to point at a different league — the app follows season rollovers on its own.
 
-To learn more about Next.js, take a look at the following resources:
+### Tests
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm test         # unit (vitest)
+npm run test:e2e # end-to-end (playwright) — fully stubbed, no database or network needed
+npm run lint
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+`npm run build` runs `drizzle-kit migrate` before `next build`, so every deploy brings the database schema in step with the code being deployed — no manual migration step.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Deploying to Vercel, step by step
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. **Import the repo.** Go to [vercel.com/new](https://vercel.com/new), pick the `FAAB-website` repository, and click **Import**. Leave the framework preset (Next.js) and all build settings at their defaults.
+2. **Add the environment variables** before the first deploy — expand **Environment Variables** on the import screen and add all three from the table above (`DATABASE_URL`, `SESSION_SECRET`, `FANTASYPROS_API_KEY`). Apply each to Production, Preview, and Development.
+3. **Deploy.** The build applies migrations and compiles. First load takes a few seconds while the server fetches Sleeper's player list and bootstraps the book.
+4. **Claim the commissioner account first.** Open the deployed URL, pick your Sleeper name (`jdawnso`) from the sign-in screen, and set a PIN. Claiming is first-come — do this before sharing the link, since whoever claims a member sets its PIN.
+5. **Share the URL with the league.** Each member claims their own name and sets their own PIN. If someone forgets theirs, the commissioner's **Reset a member's PIN** tool clears the claim so they can set a new one.
+
+### Notes
+
+- **Preview deployments share the production database** if you give them the same `DATABASE_URL`. To keep previews from writing to the real book, either leave `DATABASE_URL` unset for the Preview environment or point it at a separate Supabase project.
+- **Rotating the database password** (Supabase → Settings → Database) means updating `DATABASE_URL` in both Vercel and `.env.local`.
+- **The players cache** (Sleeper's ~15MB player blob) is a per-instance in-memory singleton with a 24-hour TTL, so a cold start refetches it once. That's the slowest part of a first request after idle.

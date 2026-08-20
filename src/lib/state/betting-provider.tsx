@@ -62,6 +62,8 @@ type BettingContextValue = {
   cancelWager: (wagerId: string) => Promise<ActionResult>;
   /** Commissioner override: manually open/lock a matchup's market, independent of settlement. */
   setMarketStatus: (matchupId: string, status: MarketStatus) => Promise<void>;
+  /** Commissioner correction to a member's available FAAB. Signed amount; reason required. */
+  adjustFaab: (memberId: string, amount: number, reason: string) => Promise<ActionResult>;
 };
 
 const BettingContext = createContext<BettingContextValue | null>(null);
@@ -190,6 +192,19 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     if (!ok) throw new Error(errorMessage(body));
   }
 
+  async function adjustFaab(
+    memberId: string,
+    amount: number,
+    reason: string
+  ): Promise<ActionResult> {
+    const { ok, body } = await mutate("/api/commissioner/adjust-faab", {
+      memberId,
+      amount,
+      reason,
+    });
+    return ok ? { ok: true } : { ok: false, error: errorMessage(body) };
+  }
+
   async function resetDemoData(): Promise<void> {
     const { ok, body } = await mutate("/api/book/reset", {});
     if (!ok) throw new Error(errorMessage(body));
@@ -210,6 +225,7 @@ export function BettingProvider({ children }: { children: ReactNode }) {
         voidWager,
         cancelWager,
         setMarketStatus,
+        adjustFaab,
       }}
     >
       {children}

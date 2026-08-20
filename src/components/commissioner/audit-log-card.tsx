@@ -23,6 +23,7 @@ const ACTION_LABELS: Record<string, string> = {
   "settle-week": "settled",
   "market-open": "opened market",
   "market-locked": "locked market",
+  "adjust-faab": "adjusted FAAB for",
   "reset-book": "reset the book",
   "claim-member": "claimed their team",
   "reset-pin": "reset the PIN for",

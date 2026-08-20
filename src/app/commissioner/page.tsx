@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { KeyRound, Lock, ShieldAlert, Trophy, Undo2 } from "lucide-react";
+import { Coins, KeyRound, Lock, ShieldAlert, Trophy, Undo2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,6 +16,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { AdjustFaabCard } from "@/components/commissioner/adjust-faab-card";
 import { AuditLogCard } from "@/components/commissioner/audit-log-card";
 import { ResetPinCard } from "@/components/commissioner/reset-pin-card";
 import { SettleWeekCard } from "@/components/commissioner/settle-week-card";
@@ -66,6 +67,7 @@ export default function CommissionerPage() {
         <VoidWagerCard icon={Undo2} onVoided={() => setAuditKey((k) => k + 1)} />
         <ManageMarketsCard icon={Lock} onChanged={() => setAuditKey((k) => k + 1)} />
         <SettleWeekCard icon={Trophy} onSettled={() => setAuditKey((k) => k + 1)} />
+        <AdjustFaabCard icon={Coins} onAdjusted={() => setAuditKey((k) => k + 1)} />
         <ResetPinCard icon={KeyRound} />
       </div>
 

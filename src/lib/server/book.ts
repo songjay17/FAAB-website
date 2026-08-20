@@ -551,6 +551,85 @@ export async function settleWeek(input: {
   });
 }
 
+/** Largest single correction allowed — a guard against a typo'd extra zero, not a policy limit. */
+export const MAX_FAAB_ADJUSTMENT = 500;
+
+/**
+ * Commissioner correction to a member's available FAAB: the "we agreed
+ * offline that Sam's balance is wrong" escape hatch. Deliberately narrow —
+ * it moves `availableFaab` only:
+ *
+ * - reserved FAAB is owned by open wagers, so touching it here would
+ *   desynchronize wallets from the wagers holding those stakes;
+ * - weekly/season P/L stay put, following the same reasoning as
+ *   reconcileWaiverSpend — an adjustment is a correction, not a betting
+ *   outcome, and shouldn't move anyone's leaderboard standing.
+ *
+ * A reason is mandatory and audit-logged, same as a void.
+ */
+export async function adjustWalletFaab(input: {
+  leagueId: string;
+  actorMemberId: string;
+  memberId: string;
+  /** Signed: positive credits the member, negative debits them. */
+  amount: number;
+  reason: string;
+}): Promise<{ ok: true; wallet: FaabWallet } | BookActionError> {
+  const db = getDb();
+  const { leagueId, actorMemberId, memberId } = input;
+  const amount = round2(input.amount);
+  const reason = input.reason.trim();
+
+  return db.transaction(async (tx) => {
+    if (!Number.isFinite(amount) || amount === 0) {
+      return { ok: false as const, error: "Enter a non-zero adjustment amount." };
+    }
+    if (Math.abs(amount) > MAX_FAAB_ADJUSTMENT) {
+      return {
+        ok: false as const,
+        error: `Adjustments are capped at ${MAX_FAAB_ADJUSTMENT} FAAB per correction.`,
+      };
+    }
+    if (!reason) {
+      return { ok: false as const, error: "A reason is required." };
+    }
+
+    const [walletRow] = await tx
+      .select()
+      .from(wallets)
+      .where(and(eq(wallets.leagueId, leagueId), eq(wallets.memberId, memberId)))
+      .for("update");
+    if (!walletRow) {
+      return { ok: false as const, error: "Member wallet not found." };
+    }
+
+    const nextAvailable = round2(walletRow.availableFaab + amount);
+    if (nextAvailable < 0) {
+      return {
+        ok: false as const,
+        error: `That would take the balance below zero (available: ${walletRow.availableFaab}).`,
+      };
+    }
+
+    const updated: FaabWallet = { ...toWallet(walletRow), availableFaab: nextAvailable };
+    await tx
+      .update(wallets)
+      .set(walletPatch(updated))
+      .where(and(eq(wallets.leagueId, leagueId), eq(wallets.memberId, memberId)));
+
+    await tx.insert(auditLog).values({
+      leagueId,
+      actorMemberId,
+      action: "adjust-faab",
+      subjectId: memberId,
+      // The signed amount belongs in the trail: "why" alone doesn't say what changed.
+      reason: `${amount > 0 ? "+" : ""}${amount} FAAB — ${reason}`,
+    });
+
+    return { ok: true as const, wallet: updated };
+  });
+}
+
 export async function setMarketStatus(input: {
   leagueId: string;
   actorMemberId: string;
