@@ -4,6 +4,7 @@ import type {
   League,
   LeagueMember,
   PlayerPosition,
+  SeasonPhase,
   WeeklyMatchup,
 } from "@/lib/types";
 import type { ProjectionLookup } from "@/lib/fantasypros/mappers";
@@ -11,10 +12,13 @@ import { getProjectedPoints } from "@/lib/fantasypros/projections-service";
 import type {
   SleeperLeague,
   SleeperMatchupEntry,
+  SleeperNflState,
   SleeperPlayersById,
   SleeperRoster,
   SleeperUser,
 } from "./types";
+
+export const TOTAL_WEEKS = 17;
 
 const FANTASY_POSITIONS = new Set<PlayerPosition>(["QB", "RB", "WR", "TE", "K", "DEF"]);
 
@@ -29,15 +33,58 @@ function logoEmojiForRoster(rosterId: number): string {
   return LOGO_EMOJIS[rosterId % LOGO_EMOJIS.length];
 }
 
-export function mapLeague(league: SleeperLeague): League {
+function clampWeek(week: number): number {
+  return Math.min(Math.max(week, 1), TOTAL_WEEKS);
+}
+
+export function mapSeasonPhase(league: SleeperLeague): SeasonPhase {
+  if (league.status === "complete") return "complete";
+  if (league.status === "pre_draft" || league.status === "drafting") return "upcoming";
+  return "in_season";
+}
+
+/**
+ * The week the app should treat as "now". last_scored_leg alone can't do
+ * this: it pins to 17 forever on a completed season and is null/0 on one
+ * that hasn't kicked off, and mid-season it names the last *finished* week,
+ * not the one being bet on. The NFL calendar (/v1/state/nfl) is the real
+ * clock — the league's own status just decides whether that clock applies.
+ */
+export function deriveCurrentWeek(league: SleeperLeague, state: SleeperNflState): number {
+  const lastScored = league.settings.last_scored_leg ?? 0;
+  if (league.status === "complete") return clampWeek(lastScored || TOTAL_WEEKS);
+  if (mapSeasonPhase(league) === "upcoming") return 1;
+  // In-season: trust the NFL state while it's describing this league's season.
+  if (state.league_season === league.season) {
+    // display_week counts preseason weeks during the preseason — a drafted
+    // league waiting on kickoff is heading into week 1, not "pre week 2".
+    if (state.season_type === "pre" || state.season_type === "off") return 1;
+    return clampWeek(state.display_week || state.leg || lastScored || 1);
+  }
+  return clampWeek(lastScored || 1);
+}
+
+export function mapLeague(
+  league: SleeperLeague,
+  currentWeek: number,
+  upcomingSeason?: number
+): League {
+  const seasonPhase = mapSeasonPhase(league);
+  const championRosterId = league.metadata?.latest_league_winner_roster_id;
   return {
     id: league.league_id,
     name: league.name,
     season: Number(league.season),
-    currentWeek: league.settings.last_scored_leg,
-    totalWeeks: 17,
+    currentWeek,
+    totalWeeks: TOTAL_WEEKS,
     scoringFormat: "PPR",
     waiverBudget: league.settings.waiver_budget,
+    seasonPhase,
+    // latest_league_winner_roster_id names *last* season's champion until
+    // this one finishes, so it's only this league's champion when complete.
+    championTeamId:
+      seasonPhase === "complete" && championRosterId ? `roster-${championRosterId}` : undefined,
+    upcomingSeason,
   };
 }
 
@@ -109,11 +156,17 @@ export function computeRecentForm(
   return form;
 }
 
-/** Sleeper's matchup_id is only unique per-week, so the app-level id is namespaced by week. */
+/**
+ * Sleeper's matchup_id is only unique per-week, so the app-level id is
+ * namespaced by week. `isFinal` = the week has been scored (week <=
+ * last_scored_leg); an unscored week's 0–0 Sleeper points are the absence of
+ * scores, not a result, so they aren't carried over.
+ */
 export function mapMatchups(
   week: number,
   entries: SleeperMatchupEntry[],
-  lockAt: string
+  lockAt: string,
+  isFinal: boolean
 ): WeeklyMatchup[] {
   const pairs = new Map<number, SleeperMatchupEntry[]>();
   for (const entry of entries) {
@@ -132,9 +185,9 @@ export function mapMatchups(
       homeTeamId: `roster-${home.roster_id}`,
       awayTeamId: `roster-${away.roster_id}`,
       lockAt,
-      status: "final",
-      homeScore: home.points,
-      awayScore: away.points,
+      status: isFinal ? "final" : "upcoming",
+      homeScore: isFinal ? home.points : undefined,
+      awayScore: isFinal ? away.points : undefined,
     });
   }
   return matchups;

@@ -40,15 +40,27 @@ type BettingState = {
 
 type BettingAction = { type: "HYDRATE"; payload: BettingState };
 
+/**
+ * Outside a live season there is nothing to bet on — every market is forced
+ * locked, both freshly generated ones and any left open in a persisted
+ * session from before the season ended. Applied on every seed/hydrate; a
+ * commissioner can still manually unlock afterward via setMarketStatus.
+ */
+function lockMarketsWhenClosed(markets: BettingMarket[], bettingOpen: boolean): BettingMarket[] {
+  if (bettingOpen) return markets;
+  return markets.map((m) => (m.status === "open" ? { ...m, status: "locked" } : m));
+}
+
 function seedState(
   allMatchups: WeeklyMatchup[],
   playersByTeam: Record<string, FantasyPlayer[]>,
-  waiverSpendByMemberId: Record<string, number>
+  waiverSpendByMemberId: Record<string, number>,
+  bettingOpen: boolean
 ): BettingState {
   return {
     wallets: reconcileWallets(mockWallets, waiverSpendByMemberId),
     wagers: mockWagers,
-    markets: generateMarkets(allMatchups, playersByTeam),
+    markets: lockMarketsWhenClosed(generateMarkets(allMatchups, playersByTeam), bettingOpen),
   };
 }
 
@@ -96,7 +108,8 @@ function isValidBettingState(value: unknown): value is BettingState {
 function initState(
   allMatchups: WeeklyMatchup[],
   playersByTeam: Record<string, FantasyPlayer[]>,
-  waiverSpendByMemberId: Record<string, number>
+  waiverSpendByMemberId: Record<string, number>,
+  bettingOpen: boolean
 ): BettingState {
   if (typeof window !== "undefined") {
     try {
@@ -108,7 +121,11 @@ function initState(
           // real Sleeper waiver spend that happened since the last visit —
           // reconcile every time state is loaded from storage, not just on
           // first-ever seed.
-          return { ...parsed, wallets: reconcileWallets(parsed.wallets, waiverSpendByMemberId) };
+          return {
+            ...parsed,
+            wallets: reconcileWallets(parsed.wallets, waiverSpendByMemberId),
+            markets: lockMarketsWhenClosed(parsed.markets, bettingOpen),
+          };
         }
         window.localStorage.removeItem(STORAGE_KEY);
       }
@@ -116,7 +133,7 @@ function initState(
       // Ignore corrupt/unavailable storage (e.g. private browsing) and fall through to seed state.
     }
   }
-  return seedState(allMatchups, playersByTeam, waiverSpendByMemberId);
+  return seedState(allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen);
 }
 
 const WAGER_REFERENCE_PREFIX = "JHL-";
@@ -174,12 +191,13 @@ type BettingContextValue = {
 const BettingContext = createContext<BettingContextValue | null>(null);
 
 export function BettingProvider({ children }: { children: ReactNode }) {
-  const { matchupsByWeek, playersByTeam, waiverSpendByMemberId } = useSleeperData();
+  const { league, matchupsByWeek, playersByTeam, waiverSpendByMemberId } = useSleeperData();
   const allMatchups = Array.from(matchupsByWeek.values()).flat();
+  const bettingOpen = league.seasonPhase === "in_season";
   const [state, dispatch] = useReducer(
     bettingReducer,
     undefined,
-    () => initState(allMatchups, playersByTeam, waiverSpendByMemberId)
+    () => initState(allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen)
   );
 
   useEffect(() => {
@@ -249,7 +267,10 @@ export function BettingProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(STORAGE_KEY);
     }
-    dispatch({ type: "HYDRATE", payload: seedState(allMatchups, playersByTeam, waiverSpendByMemberId) });
+    dispatch({
+      type: "HYDRATE",
+      payload: seedState(allMatchups, playersByTeam, waiverSpendByMemberId, bettingOpen),
+    });
   }
 
   function settleWeek(week: number): SettlementResult {

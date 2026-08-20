@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav-items";
+import { seasonStatusLabel } from "@/lib/services/league-service";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 
 export function Navigation() {
@@ -16,7 +17,7 @@ export function Navigation() {
         <span className="text-xl">🏈</span>
         <div className="flex flex-col leading-none">
           <span className="font-semibold text-sidebar-foreground">{league.name}</span>
-          <span className="text-xs text-muted-foreground">Week {league.currentWeek}</span>
+          <span className="text-xs text-muted-foreground">{seasonStatusLabel(league)}</span>
         </div>
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-3 py-2">

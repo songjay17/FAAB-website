@@ -8,6 +8,13 @@ export async function getLeagueMembers(members: LeagueMember[]): Promise<LeagueM
   return members;
 }
 
+/** Short "where are we in the season" label for topbars — replaces a bare week number that reads as live betting year-round. */
+export function seasonStatusLabel(league: League): string {
+  if (league.seasonPhase === "complete") return `${league.season} · Final`;
+  if (league.seasonPhase === "upcoming") return `${league.season} · Preseason`;
+  return `Week ${league.currentWeek}`;
+}
+
 export async function getMemberById(
   members: LeagueMember[],
   memberId: string

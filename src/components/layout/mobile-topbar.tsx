@@ -1,6 +1,7 @@
 "use client";
 
 import { formatFaab } from "@/lib/odds";
+import { seasonStatusLabel } from "@/lib/services/league-service";
 import { useBetting } from "@/lib/state/betting-provider";
 import { useSleeperData } from "@/lib/state/sleeper-data-provider";
 
@@ -14,7 +15,7 @@ export function MobileTopbar() {
         <span className="text-lg">🏈</span>
         <div className="flex flex-col leading-none">
           <span className="text-sm font-semibold">{league.name}</span>
-          <span className="text-[11px] text-muted-foreground">Week {league.currentWeek}</span>
+          <span className="text-[11px] text-muted-foreground">{seasonStatusLabel(league)}</span>
         </div>
       </div>
       <div className="flex flex-col items-end leading-none">
